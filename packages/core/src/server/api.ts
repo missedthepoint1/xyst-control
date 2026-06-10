@@ -31,13 +31,16 @@ export function createApiServer(mgr: CameraManager, _opts: ApiServerOptions = {}
   router.add('POST', '/api/cameras/:id/controls/:control', async ({ params, body }) => {
     const control = params.control as ControlId;
     if (!CONTROL_IDS.includes(control)) throw new HttpError(400, `unknown control ${control}`);
-    const value = (body as { value?: string | number })?.value;
-    if (value === undefined) throw new HttpError(400, 'body.value required');
+    const value = (body as { value?: string | number | null })?.value;
+    if (value === undefined || value === null) throw new HttpError(400, 'body.value required');
     await mgr.setControl(params.id!, control, value);
     return ok();
   });
 
-  router.add('GET', '/api/cameras/:id/presets', ({ params }) => mgr.listPresets(params.id!));
+  router.add('GET', '/api/cameras/:id/presets', ({ params }) => {
+    required(mgr.getState(params.id!));
+    return mgr.listPresets(params.id!);
+  });
   router.add('POST', '/api/cameras/:id/presets', ({ params, body }) => {
     const name = (body as { name?: string })?.name;
     if (!name) throw new HttpError(400, 'body.name required');
@@ -74,7 +77,9 @@ async function handle(router: Router, req: IncomingMessage, res: ServerResponse)
     if (!res.headersSent && !res.writableEnded) send(res, 200, result ?? { ok: true });
   } catch (err) {
     const code = err instanceof HttpError ? err.code : 500;
-    send(res, code, { error: err instanceof Error ? err.message : String(err) });
+    if (!res.headersSent && !res.writableEnded) {
+      send(res, code, { error: err instanceof Error ? err.message : String(err) });
+    }
   }
 }
 

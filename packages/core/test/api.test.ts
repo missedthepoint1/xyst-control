@@ -95,4 +95,24 @@ describe('REST API', () => {
     expect(st.recording).toBe(true);
     await fetch(`${base}/api/record/stop`, { method: 'POST' });
   });
+
+  it('responds 404 (does not hang) for a malformed percent-encoded path', async () => {
+    await setup();
+    const r = await fetch(`${base}/api/cameras/%xyz/status`);
+    expect(r.status).toBe(404);
+  });
+
+  it('rejects a null control value with 400', async () => {
+    await setup();
+    const r = await fetch(`${base}/api/cameras/cam-1/controls/iso`, {
+      method: 'POST', headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ value: null }),
+    });
+    expect(r.status).toBe(400);
+  });
+
+  it('404 for presets of an unknown camera', async () => {
+    await setup();
+    expect((await fetch(`${base}/api/cameras/nope/presets`)).status).toBe(404);
+  });
 });

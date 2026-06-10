@@ -24,11 +24,15 @@ export class Router {
       for (let i = 0; i < r.parts.length; i++) {
         const p = r.parts[i]!;
         const s = segs[i]!;
-        if (p.startsWith(':')) params[p.slice(1)] = decodeURIComponent(s);
+        if (p.startsWith(':')) params[p.slice(1)] = safeDecode(s);
         else if (p !== s) { ok = false; break; }
       }
       if (ok) return { handler: r.handler, params };
     }
     return null;
   }
+}
+
+function safeDecode(s: string): string {
+  try { return decodeURIComponent(s); } catch { return s; }
 }
