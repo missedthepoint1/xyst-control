@@ -13,7 +13,7 @@ export function useCameras() {
     void refresh();
     const off = window.xyst.onState((id, state) =>
       setStates((prev) => ({ ...prev, [id]: state as CameraState })));
-    return off;
+    return () => { off(); };
   }, [refresh]);
 
   return { states: Object.values(states), refresh };
