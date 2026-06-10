@@ -1,0 +1,11 @@
+{
+  "cameras": [
+    {
+      "id": "cam-1",
+      "name": "C300 III",
+      "driver": "xc",
+      "host": "192.168.100.1",
+      "auth": { "username": "", "password": "" }
+    }
+  ]
+}
