@@ -1,13 +1,18 @@
 import { app } from 'electron';
 import { join } from 'node:path';
-import { existsSync, copyFileSync } from 'node:fs';
+import { existsSync, writeFileSync } from 'node:fs';
 
-/** cameras.json lives in userData; seed from the repo example on first run. */
+/**
+ * cameras.json lives in userData. On first run we seed an EMPTY config rather
+ * than copying config/cameras.example.json — otherwise the app would boot with a
+ * phantom camera at the example IP and sit there failing to connect. The example
+ * file remains in the repo purely as documentation of the profile shape; real
+ * cameras are added through the app's "Add camera" UI.
+ */
 export function resolveConfigPath(): string {
   const dest = join(app.getPath('userData'), 'cameras.json');
   if (!existsSync(dest)) {
-    const example = join(app.getAppPath(), '..', '..', 'config', 'cameras.example.json');
-    if (existsSync(example)) copyFileSync(example, dest);
+    writeFileSync(dest, JSON.stringify({ cameras: [] }, null, 2));
   }
   return dest;
 }
