@@ -10,11 +10,11 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@companion-module/base": "~1.11.0",
-    "@xyst/core": "workspace:*"
+    "@companion-module/base": "~1.11.0"
   },
   "devDependencies": {
     "@companion-module/tools": "~2.1.0",
+    "@xyst/core": "workspace:*",
     "typescript": "^5.5.4",
     "vitest": "^2.0.5"
   }

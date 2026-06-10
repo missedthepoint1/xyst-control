@@ -63,13 +63,13 @@ importers:
       '@companion-module/base':
         specifier: ~1.11.0
         version: 1.11.3
-      '@xyst/core':
-        specifier: workspace:*
-        version: link:../core
     devDependencies:
       '@companion-module/tools':
         specifier: ~2.1.0
         version: 2.1.1(@companion-module/base@1.11.3)(eslint@9.39.4)(prettier@3.8.4)(typescript@5.9.3)
+      '@xyst/core':
+        specifier: workspace:*
+        version: link:../core
       typescript:
         specifier: ^5.5.4
         version: 5.9.3

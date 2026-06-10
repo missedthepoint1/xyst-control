@@ -58,4 +58,11 @@ describe('XystApiClient', () => {
     await api.recallPreset('preset-9');
     expect(log[0]?.url).toBe('/api/presets/preset-9/recall');
   });
+
+  it('savePreset posts the name', async () => {
+    const api = new XystApiClient(await fakeApi());
+    await api.savePreset('cam-1', 'Look A');
+    expect(log[0]?.url).toBe('/api/cameras/cam-1/presets');
+    expect(JSON.parse(log[0]!.body)).toEqual({ name: 'Look A' });
+  });
 });
