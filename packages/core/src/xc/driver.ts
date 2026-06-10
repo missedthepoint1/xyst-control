@@ -1,15 +1,18 @@
 import { EventEmitter } from 'node:events';
 import type { CameraDriver } from '../driver.js';
 import type {
-  CameraProfile, CameraState, CameraSnapshot, ConnectionStatus, ControlId,
+  CameraProfile, CameraState, CameraSnapshot, ConnectionStatus, ControlId, ControlSettings,
 } from '../types.js';
 import { xcRequest } from './client.js';
 import { interpretInfo } from './interpret.js';
-import { buildControlParams, buildRecordParams } from './commands.js';
+import { buildControlParams, buildRecordParams, buildSettingsParams } from './commands.js';
+import { openInfoStream, type InfoStreamHandle } from './stream.js';
 
 export interface XCDriverOptions {
   pollMs?: number;
   timeoutMs?: number;
+  /** Slow reconcile/liveness poll cadence while the stream is healthy. */
+  reconcileMs?: number;
 }
 
 export class XCProtocolDriver extends EventEmitter implements CameraDriver {
@@ -23,14 +26,19 @@ export class XCProtocolDriver extends EventEmitter implements CameraDriver {
   private lastError?: string;
   private readonly pollMs: number;
   private readonly timeoutMs: number;
+  private readonly reconcileMs: number;
+  private stream?: InfoStreamHandle;
+  private streaming = false;
+  private lastActivityAt = 0;
+  private streamRetry?: NodeJS.Timeout;
 
   constructor(private profile: CameraProfile, opts: XCDriverOptions = {}) {
     super();
     this.id = profile.id;
     this.pollMs = opts.pollMs ?? 750;
     this.timeoutMs = opts.timeoutMs ?? 4000;
+    this.reconcileMs = opts.reconcileMs ?? 5000;
     // Safety net: prevent Node from throwing on unhandled 'error' events.
-    // Consumers can still add their own listener and will receive events too.
     this.on('error', () => {});
   }
 
@@ -53,6 +61,7 @@ export class XCProtocolDriver extends EventEmitter implements CameraDriver {
       await this.refresh();
       this.setStatus('connected');
       this.startPolling();
+      this.startStream();
     } catch (err) {
       this.fail(err);
       this.startPolling(); // keep trying to recover
@@ -63,6 +72,9 @@ export class XCProtocolDriver extends EventEmitter implements CameraDriver {
   async disconnect(): Promise<void> {
     if (this.timer) clearInterval(this.timer);
     this.timer = undefined;
+    if (this.streamRetry) clearTimeout(this.streamRetry);
+    this.streamRetry = undefined;
+    this.stopStream();
     this.setStatus('disconnected');
   }
 
@@ -73,6 +85,12 @@ export class XCProtocolDriver extends EventEmitter implements CameraDriver {
     await this.control(buildControlParams(id, value));
   }
 
+  async applySettings(settings: ControlSettings): Promise<void> {
+    const params = buildSettingsParams(settings);
+    if (Object.keys(params).length === 0) return;
+    await this.control(params);
+  }
+
   // --- internals ---
 
   private async control(params: Record<string, string>): Promise<void> {
@@ -81,8 +99,7 @@ export class XCProtocolDriver extends EventEmitter implements CameraDriver {
       const { map } = await xcRequest(this.profile.host, 'control.cgi', params, {
         auth: this.profile.auth, timeoutMs: this.timeoutMs,
       });
-      // control.cgi echoes changed items; fold them in, then do a full refresh
-      this.applyPartial(map);
+      this.mergeMap(map);
       await this.refresh();
     } finally {
       this.controlInFlight = false;
@@ -96,15 +113,15 @@ export class XCProtocolDriver extends EventEmitter implements CameraDriver {
     this.lastError = undefined;
     this.snapshot = interpretInfo(map);
     this.snapshotAt = Date.now();
+    this.lastActivityAt = Date.now();
     this.emit('state', this.getState());
   }
 
-  private applyPartial(map: Record<string, string>): void {
-    // Lightweight merge so the UI feels instant before the refresh lands.
+  /** Merge a partial info map (control echo or stream delta) into the snapshot. */
+  private mergeMap(map: Record<string, string>): void {
     const merged = interpretInfo(map);
-    // Only adopt record state if the echo actually reported it — interpretInfo
-    // always returns a record object (defaulting recording:false), so merging it
-    // unconditionally would briefly clobber a known-good REC state.
+    if ('c.1.type' in map && merged.model) this.snapshot.model = merged.model;
+    if ('c.1.exp' in map && merged.exposureMode) this.snapshot.exposureMode = merged.exposureMode;
     if ('f.rec.status' in map) {
       this.snapshot.record = { ...this.snapshot.record, ...merged.record };
     }
@@ -118,6 +135,8 @@ export class XCProtocolDriver extends EventEmitter implements CameraDriver {
 
   private async poll(): Promise<void> {
     if (this.polling || this.controlInFlight) return;
+    // While the stream is healthy, only poll as a slow reconcile/liveness check.
+    if (this.streaming && Date.now() - this.lastActivityAt < this.reconcileMs) return;
     this.polling = true;
     try {
       await this.refresh();
@@ -127,6 +146,41 @@ export class XCProtocolDriver extends EventEmitter implements CameraDriver {
     } finally {
       this.polling = false;
     }
+  }
+
+  private startStream(): void {
+    if (this.stream) return;
+    this.stream = openInfoStream(this.profile.host, { auth: this.profile.auth }, {
+      onOpen: () => { this.streaming = true; this.lastActivityAt = Date.now(); },
+      onDelta: (map) => this.onStreamDelta(map),
+      onError: () => this.onStreamDown(),
+    });
+  }
+
+  private stopStream(): void {
+    this.streaming = false;
+    this.stream?.close();
+    this.stream = undefined;
+  }
+
+  private onStreamDelta(map: Record<string, string>): void {
+    this.streaming = true;
+    this.lastActivityAt = Date.now();
+    this.mergeMap(map);
+    this.snapshotAt = Date.now();
+    this.lastError = undefined;
+    if (this._status === 'error') this.setStatus('connected');
+    this.emit('state', this.getState());
+  }
+
+  private onStreamDown(): void {
+    this.stopStream();
+    // Fast polling (the poll loop) covers state until the stream returns.
+    if (this.streamRetry) return;
+    this.streamRetry = setTimeout(() => {
+      this.streamRetry = undefined;
+      if (this._status !== 'disconnected') this.startStream();
+    }, 2000);
   }
 
   private fail(err: unknown): void {

@@ -43,6 +43,7 @@ export class FakeCamera {
 
   /** Simulate a body-side change: update state and push the delta to open streams. */
   pushDelta(delta: Record<string, string>): void {
+    if (Object.keys(delta).length === 0) return;
     Object.assign(this.state, delta);
     this.writeToStreams(delta);
   }
