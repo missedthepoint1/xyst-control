@@ -1,0 +1,7 @@
+node_modules/
+dist/
+out/
+.work/
+config/cameras.json
+*.log
+.DS_Store
