@@ -56,9 +56,9 @@ describe('openInfoStream', () => {
     const handle = openInfoStream(host, {}, { onDelta: (m) => deltas.push(m), onError: () => {} });
     await vi.waitFor(() => expect(deltas.length).toBeGreaterThanOrEqual(3), { timeout: 2000 });
     handle.close();
-    expect(deltas[0]['c.1.type']).toBe('Canon EOS C300 Mark III');
-    expect(deltas[1]['c.1.me.iso']).toBe('1600');
-    expect(deltas[2]['f.rec.status']).toBe('rec');
+    expect(deltas[0]!['c.1.type']).toBe('Canon EOS C300 Mark III');
+    expect(deltas[1]!['c.1.me.iso']).toBe('1600');
+    expect(deltas[2]!['f.rec.status']).toBe('rec');
   });
 
   it('calls onError when the connection is refused', async () => {
@@ -95,7 +95,7 @@ describe('openInfoStream', () => {
     // the iso part must arrive intact, exactly once, with the FULL key — no phantom 'iso'
     const isoDeltas = deltas.filter((d) => 'c.1.me.iso' in d);
     expect(isoDeltas).toHaveLength(1);
-    expect(isoDeltas[0]['c.1.me.iso']).toBe('1600');
+    expect(isoDeltas[0]!['c.1.me.iso']).toBe('1600');
     expect(deltas.some((d) => 'iso' in d && !('c.1.me.iso' in d))).toBe(false); // no phantom key
   });
 });
