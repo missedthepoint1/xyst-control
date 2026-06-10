@@ -16,7 +16,12 @@ export class CameraManager extends EventEmitter {
 
   async load(): Promise<void> {
     const raw = await readFile(this.configPath, 'utf8').catch(() => '{"cameras":[]}');
-    const cfg = JSON.parse(raw) as ConfigFile;
+    let cfg: ConfigFile;
+    try {
+      cfg = JSON.parse(raw) as ConfigFile;
+    } catch (err) {
+      throw new Error(`invalid camera config at ${this.configPath}: ${(err as Error).message}`);
+    }
     for (const p of cfg.cameras ?? []) {
       this.profiles.set(p.id, p);
       this.makeDriver(p);
@@ -46,9 +51,17 @@ export class CameraManager extends EventEmitter {
   }
 
   async addCamera(profile: CameraProfile): Promise<void> {
+    if (this.profiles.has(profile.id)) {
+      throw new Error(`camera already exists: ${profile.id}`);
+    }
     this.profiles.set(profile.id, profile);
+    try {
+      await this.save();
+    } catch (err) {
+      this.profiles.delete(profile.id); // roll back so memory matches disk
+      throw err;
+    }
     this.makeDriver(profile);
-    await this.save();
   }
 
   private makeDriver(profile: CameraProfile): void {

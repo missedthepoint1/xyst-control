@@ -61,4 +61,21 @@ describe('CameraManager', () => {
     const saved = JSON.parse(readFileSync(file, 'utf8'));
     expect(saved.cameras.map((c: any) => c.id)).toContain('cam-2');
   });
+
+  it('rejects adding a camera with a duplicate id', async () => {
+    cam = new FakeCamera();
+    const host = await cam.listen();
+    mgr = new CameraManager(configWith(host), { pollMs: 50 });
+    await mgr.load(); // config already has cam-1
+    await expect(mgr.addCamera({ id: 'cam-1', name: 'dupe', driver: 'xc', host }))
+      .rejects.toThrow(/already exists/);
+  });
+
+  it('throws a clear error when the config file is corrupt', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'xyst-'));
+    const file = join(dir, 'cameras.json');
+    writeFileSync(file, '{ this is not valid json');
+    mgr = new CameraManager(file, { pollMs: 50 });
+    await expect(mgr.load()).rejects.toThrow(/invalid camera config/);
+  });
 });
