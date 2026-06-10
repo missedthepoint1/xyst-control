@@ -58,3 +58,33 @@ GET  http://127.0.0.1:8088/api/events                 # SSE live state
 
 Use the plain POST/GET routes from Companion. The SSE endpoint (`/api/events`) is
 for live state — consumed by the app UI and web clients, not Companion buttons.
+
+### Native Companion module (Phase 7 — implemented)
+
+A first-class Bitfocus Companion module lives at `packages/companion-module`
+(package `@xyst/companion-module`). It is a pure client of the REST/SSE API
+above — no separate camera logic, no `@xyst/core` runtime coupling.
+
+**Build:**
+
+```bash
+pnpm --filter @xyst/companion-module build
+```
+
+**Load in Companion (dev):**
+
+1. In Companion → Settings → "Developer modules path", point it to
+   `<repo>/packages/companion-module`.
+2. Add a new connection, search for **xyst-control**.
+3. Set **host** = `127.0.0.1` and **port** = `8088` (the app's API).
+
+**Two-stage story:**
+
+| Stage | How | What you get |
+|---|---|---|
+| Stage 1 — Generic HTTP | Plain POST/GET routes above, available today | Actions only (trigger record, set ISO, recall preset, etc.) |
+| Stage 2 — Native module | `packages/companion-module` | Adds **feedbacks** (REC tally turns button red) + **variables** (ISO, shutter, iris, WB, ND, status — per camera) |
+
+**v0.1 known limitation:** camera list is fetched once at connection init
+(`GET /api/cameras`). A camera added while the module is connected requires a
+connection reload in Companion to appear in dropdowns.
