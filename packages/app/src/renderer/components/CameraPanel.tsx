@@ -5,6 +5,8 @@ import { ShutterControl } from './controls/ShutterControl.js';
 import { IrisControl } from './controls/IrisControl.js';
 import { WbControl } from './controls/WbControl.js';
 import { NdControl } from './controls/NdControl.js';
+import { usePresets } from '../hooks/usePresets.js';
+import { PresetBar } from './PresetBar.js';
 
 const statusColor: Record<string, string> = {
   connected: 'var(--ok)', connecting: 'var(--accent)',
@@ -15,6 +17,7 @@ export function CameraPanel({ state }: { state: CameraState }) {
   const id = state.id;
   const set = (control: string, value: string | number) =>
     window.xyst.setControl(id, control, value);
+  const { presets } = usePresets(state.id);
   return (
     <section style={{
       background: 'var(--surface)', border: '1px solid var(--border)',
@@ -46,6 +49,7 @@ export function CameraPanel({ state }: { state: CameraState }) {
         )}
         {state.controls.nd?.available && <NdControl c={state.controls.nd} onSet={(v) => set('nd', v)} />}
       </div>
+      <PresetBar cameraId={state.id} presets={presets} />
     </section>
   );
 }
