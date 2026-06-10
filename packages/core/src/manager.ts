@@ -1,5 +1,6 @@
 import { EventEmitter } from 'node:events';
 import { readFile, writeFile } from 'node:fs/promises';
+import { randomUUID } from 'node:crypto';
 import type { CameraDriver } from './driver.js';
 import type { CameraProfile, CameraState, ControlId, ControlSettings, CameraPreset } from './types.js';
 import { XCProtocolDriver, type XCDriverOptions } from './xc/driver.js';
@@ -9,8 +10,6 @@ interface ConfigFile { cameras: CameraProfile[] }
 export class CameraManager extends EventEmitter {
   private profiles = new Map<string, CameraProfile>();
   private drivers = new Map<string, CameraDriver>();
-  private presetSeq = 0;
-
   constructor(private configPath: string, private driverOpts: XCDriverOptions = {}) {
     super();
   }
@@ -74,25 +73,28 @@ export class CameraManager extends EventEmitter {
   async recallPreset(cameraId: string, presetId: string): Promise<void> {
     const preset = this.listPresets(cameraId).find((p) => p.id === presetId);
     if (!preset) throw new Error(`no preset ${presetId} on ${cameraId}`);
-    const state = this.driver(cameraId).getState();
+    const d = this.driver(cameraId);
+    const state = d.getState();
     const applicable: ControlSettings = {};
     for (const [id, value] of Object.entries(preset.settings)) {
       if (state.controls[id as ControlId]?.available) applicable[id as ControlId] = value;
     }
-    await this.driver(cameraId).applySettings(applicable);
+    await d.applySettings(applicable);
   }
 
   async deletePreset(cameraId: string, presetId: string): Promise<void> {
     const profile = this.profiles.get(cameraId);
     if (!profile) throw new Error(`no camera with id ${cameraId}`);
-    profile.presets = (profile.presets ?? []).filter((p) => p.id !== presetId);
+    const before = profile.presets ?? [];
+    const after = before.filter((p) => p.id !== presetId);
+    if (after.length === before.length) return; // nothing removed — no write, no event
+    profile.presets = after;
     await this.save();
     this.emit('presets', cameraId, profile.presets);
   }
 
-  private nextPresetId(cameraId: string): string {
-    this.presetSeq += 1;
-    return `${cameraId}-p${this.presetSeq}`;
+  private nextPresetId(_cameraId: string): string {
+    return randomUUID();
   }
 
   async addCamera(profile: CameraProfile): Promise<void> {

@@ -119,4 +119,34 @@ describe('CameraManager', () => {
     const saved = JSON.parse(readFileSync(file, 'utf8'));
     expect(saved.cameras[0].presets ?? []).toHaveLength(0);
   });
+
+  it('assigns unique preset ids across manager restarts (no collision)', async () => {
+    cam = new FakeCamera();
+    const host = await cam.listen();
+    const file = configWith(host);
+    const mgr1 = new CameraManager(file, { pollMs: 50 });
+    await mgr1.load();
+    await mgr1.connect('cam-1');
+    const p1 = await mgr1.savePreset('cam-1', 'A');
+    await mgr1.disconnectAll();
+    // simulate restart: a fresh manager loading the same file
+    mgr = new CameraManager(file, { pollMs: 50 });
+    await mgr.load();
+    await mgr.connect('cam-1');
+    const p2 = await mgr.savePreset('cam-1', 'B');
+    expect(p2.id).not.toBe(p1.id);
+    const ids = mgr.listPresets('cam-1').map((p) => p.id);
+    expect(new Set(ids).size).toBe(ids.length); // all unique
+  });
+
+  it('deletePreset with an unknown id is a clean no-op', async () => {
+    cam = new FakeCamera();
+    const host = await cam.listen();
+    mgr = new CameraManager(configWith(host), { pollMs: 50 });
+    await mgr.load();
+    await mgr.connect('cam-1');
+    await mgr.savePreset('cam-1', 'A');
+    await mgr.deletePreset('cam-1', 'nonexistent-id');
+    expect(mgr.listPresets('cam-1')).toHaveLength(1);
+  });
 });
