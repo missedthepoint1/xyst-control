@@ -6,3 +6,5 @@ config/cameras.json
 *.log
 .DS_Store
 *.tsbuildinfo
+pkg/
+*.tgz
