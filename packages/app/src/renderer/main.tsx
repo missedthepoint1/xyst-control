@@ -1,5 +1,21 @@
 import { createRoot } from 'react-dom/client';
-function Boot() {
-  return <div style={{ padding: 24 }}>XYST CONTROL — booting…</div>;
+import './theme.css';
+import './app.css';
+import { AppShell } from './components/AppShell.js';
+import { CameraPanel } from './components/CameraPanel.js';
+import { AddCameraForm } from './components/AddCameraForm.js';
+import { useCameras } from './hooks/useCameras.js';
+
+function App() {
+  const { states, refresh } = useCameras();
+  return (
+    <AppShell
+      onRecAll={() => window.xyst.recordAll(true)}
+      onStopAll={() => window.xyst.recordAll(false)}
+    >
+      {states.map((s) => <CameraPanel key={s.id} state={s} />)}
+      <AddCameraForm onAdded={refresh} />
+    </AppShell>
+  );
 }
-createRoot(document.getElementById('root')!).render(<Boot />);
+createRoot(document.getElementById('root')!).render(<App />);

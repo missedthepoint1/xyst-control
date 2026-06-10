@@ -1,0 +1,10 @@
+.app { display: flex; flex-direction: column; height: 100vh; }
+.app__header { display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 20px; border-bottom: 1px solid var(--border); background: var(--surface); }
+.app__title { font-weight: 650; letter-spacing: 0.5px; }
+.app__body { padding: 20px; overflow: auto; display: grid; gap: 16px;
+  grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); }
+.btn { background: var(--surface-2); border: 1px solid var(--border);
+  border-radius: 10px; padding: 8px 14px; transition: background .15s, border-color .15s; }
+.btn:hover { background: #232b33; }
+.btn--ghost { background: transparent; }
