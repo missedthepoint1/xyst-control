@@ -2,7 +2,7 @@ import { EventEmitter } from 'node:events';
 import type { CameraState, ControlId, ConnectionStatus } from './types.js';
 
 export interface CameraDriverEvents {
-  state: (patch: Partial<CameraState>) => void;
+  state: (state: CameraState) => void;
   status: (status: ConnectionStatus) => void;
   error: (err: Error) => void;
 }

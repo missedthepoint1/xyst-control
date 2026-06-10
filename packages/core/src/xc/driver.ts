@@ -16,8 +16,10 @@ export class XCProtocolDriver extends EventEmitter implements CameraDriver {
   readonly id: string;
   private _status: ConnectionStatus = 'disconnected';
   private snapshot: CameraSnapshot = { record: { recording: false }, controls: {} };
+  private snapshotAt = 0;
   private timer?: NodeJS.Timeout;
   private polling = false;
+  private controlInFlight = false;
   private lastError?: string;
   private readonly pollMs: number;
   private readonly timeoutMs: number;
@@ -38,7 +40,7 @@ export class XCProtocolDriver extends EventEmitter implements CameraDriver {
     return {
       id: this.id,
       status: this._status,
-      updatedAt: Date.now(),
+      updatedAt: this.snapshotAt,
       lastError: this.lastError,
       ...this.snapshot,
     };
@@ -73,12 +75,17 @@ export class XCProtocolDriver extends EventEmitter implements CameraDriver {
   // --- internals ---
 
   private async control(params: Record<string, string>): Promise<void> {
-    const { map } = await xcRequest(this.profile.host, 'control.cgi', params, {
-      auth: this.profile.auth, timeoutMs: this.timeoutMs,
-    });
-    // control.cgi echoes changed items; fold them in, then do a full refresh
-    this.applyPartial(map);
-    await this.refresh();
+    this.controlInFlight = true;
+    try {
+      const { map } = await xcRequest(this.profile.host, 'control.cgi', params, {
+        auth: this.profile.auth, timeoutMs: this.timeoutMs,
+      });
+      // control.cgi echoes changed items; fold them in, then do a full refresh
+      this.applyPartial(map);
+      await this.refresh();
+    } finally {
+      this.controlInFlight = false;
+    }
   }
 
   private async refresh(): Promise<void> {
@@ -87,6 +94,7 @@ export class XCProtocolDriver extends EventEmitter implements CameraDriver {
     });
     this.lastError = undefined;
     this.snapshot = interpretInfo(map);
+    this.snapshotAt = Date.now();
     this.emit('state', this.getState());
   }
 
@@ -108,11 +116,11 @@ export class XCProtocolDriver extends EventEmitter implements CameraDriver {
   }
 
   private async poll(): Promise<void> {
-    if (this.polling) return;
+    if (this.polling || this.controlInFlight) return;
     this.polling = true;
     try {
       await this.refresh();
-      if (this._status !== 'connected') this.setStatus('connected');
+      if (this._status === 'error') this.setStatus('connected');
     } catch (err) {
       this.fail(err);
     } finally {
