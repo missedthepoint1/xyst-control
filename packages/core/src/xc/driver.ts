@@ -39,6 +39,7 @@ export class XCProtocolDriver extends EventEmitter implements CameraDriver {
   getState(): CameraState {
     return {
       id: this.id,
+      name: this.profile.name,
       status: this._status,
       updatedAt: this.snapshotAt,
       lastError: this.lastError,

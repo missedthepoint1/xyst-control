@@ -23,7 +23,7 @@ export function CameraPanel({ state }: { state: CameraState }) {
     }}>
       <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
         <div>
-          <div style={{ fontWeight: 650 }}>{state.model ?? id}</div>
+          <div style={{ fontWeight: 650 }}>{state.model ?? state.name ?? id}</div>
           <div style={{ fontSize: 12, color: statusColor[state.status] ?? 'var(--muted)' }}>
             {state.status}{state.lastError ? ` · ${state.lastError}` : ''}
           </div>

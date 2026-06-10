@@ -37,6 +37,7 @@ export interface CameraSnapshot {
 /** The full externally-visible state of a camera. */
 export interface CameraState extends CameraSnapshot {
   id: string;
+  name: string;
   status: ConnectionStatus;
   updatedAt: number;
   lastError?: string;
