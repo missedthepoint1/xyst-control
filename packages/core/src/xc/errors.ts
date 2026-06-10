@@ -11,3 +11,10 @@ export class LivescopeError extends XcError {
     this.name = 'LivescopeError';
   }
 }
+
+export class AuthError extends XcError {
+  constructor(readonly status: number, message: string) {
+    super(`auth failed (HTTP ${status}): ${message}`);
+    this.name = 'AuthError';
+  }
+}

@@ -1,6 +1,6 @@
 import { randomBytes } from 'node:crypto';
 import { parseXcBody } from './parse.js';
-import { XcError, LivescopeError } from './errors.js';
+import { XcError, LivescopeError, AuthError } from './errors.js';
 import {
   parseChallenge, buildDigestHeader, buildBasicHeader, type DigestChallenge,
 } from './auth.js';
@@ -44,8 +44,8 @@ export async function xcRequest(
       return await once(url, path, opts, timeoutMs);
     } catch (err) {
       lastErr = err;
-      if (err instanceof LivescopeError) throw err; // not retryable
-      await delay(Math.min(250 * 2 ** attempt, 1000));
+      if (err instanceof LivescopeError || err instanceof AuthError) throw err; // not retryable
+      if (attempt < retries) await delay(Math.min(250 * 2 ** attempt, 1000));
     }
   }
   throw new XcError(`request to ${command} failed after ${retries + 1} attempts`, lastErr);
@@ -64,6 +64,7 @@ async function once(
     if (header) res = await fetchWithTimeout(url, { headers: { Authorization: header } }, timeoutMs);
   }
 
+  if (res.status === 401) throw new AuthError(401, `authentication required or rejected for ${url}`);
   if (res.status !== 200) throw new XcError(`HTTP ${res.status} for ${url}`);
 
   const livescope = Number(res.headers.get('livescope-status') ?? '0');

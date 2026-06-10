@@ -38,6 +38,13 @@ describe('xcRequest', () => {
     expect(map['c.1.type']).toBeDefined();
   });
 
+  it('throws AuthError (non-retryable) on 401 when no credentials are given', async () => {
+    cam = new FakeCamera({ auth: { username: 'admin', password: 'secret' } });
+    const host = await cam.listen();
+    const { AuthError } = await import('../src/xc/errors.js');
+    await expect(xcRequest(host, 'info.cgi')).rejects.toBeInstanceOf(AuthError);
+  });
+
   it('throws LivescopeError on a non-zero livescope status', async () => {
     const { createServer } = await import('node:http');
     const srv = createServer((_req, res) => {
