@@ -1,0 +1,99 @@
+import { createServer, type IncomingMessage, type ServerResponse, type Server } from 'node:http';
+import type { CameraManager } from '../manager.js';
+import type { CameraState, ControlId } from '../types.js';
+import { Router, type Ctx } from './router.js';
+
+const CONTROL_IDS: ControlId[] = ['iso', 'gain', 'shutter', 'iris', 'wb', 'wbKelvin', 'nd'];
+
+function statusSummary(s: CameraState) {
+  const controls: Record<string, string | number | undefined> = {};
+  for (const id of CONTROL_IDS) controls[id] = s.controls[id]?.value;
+  return { id: s.id, name: s.name, status: s.status, model: s.model,
+    recording: s.record.recording, controls };
+}
+
+export interface ApiServerOptions { sse?: boolean }
+
+export function createApiServer(mgr: CameraManager, _opts: ApiServerOptions = {}): Server {
+  const router = new Router();
+
+  router.add('GET', '/api/health', () => ({ ok: true }));
+  router.add('GET', '/api/cameras', () => mgr.getAllStates());
+  router.add('GET', '/api/cameras/:id', ({ params }) => required(mgr.getState(params.id!)));
+  router.add('GET', '/api/cameras/:id/status', ({ params }) =>
+    statusSummary(required(mgr.getState(params.id!))));
+
+  router.add('POST', '/api/cameras/:id/record/start', ({ params }) => mgr.startRecording(params.id!).then(ok));
+  router.add('POST', '/api/cameras/:id/record/stop', ({ params }) => mgr.stopRecording(params.id!).then(ok));
+  router.add('POST', '/api/record/start', () => mgr.recordAll(true).then(ok));
+  router.add('POST', '/api/record/stop', () => mgr.recordAll(false).then(ok));
+
+  router.add('POST', '/api/cameras/:id/controls/:control', async ({ params, body }) => {
+    const control = params.control as ControlId;
+    if (!CONTROL_IDS.includes(control)) throw new HttpError(400, `unknown control ${control}`);
+    const value = (body as { value?: string | number })?.value;
+    if (value === undefined) throw new HttpError(400, 'body.value required');
+    await mgr.setControl(params.id!, control, value);
+    return ok();
+  });
+
+  router.add('GET', '/api/cameras/:id/presets', ({ params }) => mgr.listPresets(params.id!));
+  router.add('POST', '/api/cameras/:id/presets', ({ params, body }) => {
+    const name = (body as { name?: string })?.name;
+    if (!name) throw new HttpError(400, 'body.name required');
+    return mgr.savePreset(params.id!, name);
+  });
+  router.add('POST', '/api/cameras/:id/presets/:presetId/recall', ({ params }) =>
+    mgr.recallPreset(params.id!, params.presetId!).then(ok));
+  router.add('POST', '/api/presets/:presetId/recall', ({ params }) =>
+    mgr.recallPresetById(params.presetId!).then(ok));
+  router.add('DELETE', '/api/cameras/:id/presets/:presetId', ({ params }) =>
+    mgr.deletePreset(params.id!, params.presetId!).then(ok));
+
+  return createServer((req, res) => void handle(router, req, res));
+}
+
+function ok() { return { ok: true }; }
+function required<T>(v: T | undefined): T {
+  if (v === undefined) throw new HttpError(404, 'not found');
+  return v;
+}
+
+class HttpError extends Error { constructor(readonly code: number, msg: string) { super(msg); } }
+
+async function handle(router: Router, req: IncomingMessage, res: ServerResponse): Promise<void> {
+  cors(res);
+  if (req.method === 'OPTIONS') { res.writeHead(204); res.end(); return; }
+  const url = new URL(req.url ?? '/', 'http://x');
+  const m = router.match(req.method ?? 'GET', url.pathname);
+  if (!m) return send(res, 404, { error: 'not found' });
+  try {
+    const body = await readJson(req);
+    const ctx: Ctx = { req, res, params: m.params, body };
+    const result = await m.handler(ctx);
+    if (!res.headersSent && !res.writableEnded) send(res, 200, result ?? { ok: true });
+  } catch (err) {
+    const code = err instanceof HttpError ? err.code : 500;
+    send(res, code, { error: err instanceof Error ? err.message : String(err) });
+  }
+}
+
+function cors(res: ServerResponse): void {
+  res.setHeader('access-control-allow-origin', '*');
+  res.setHeader('access-control-allow-methods', 'GET,POST,DELETE,OPTIONS');
+  res.setHeader('access-control-allow-headers', 'content-type');
+}
+
+async function readJson(req: IncomingMessage): Promise<unknown> {
+  if (req.method === 'GET' || req.method === 'DELETE') return undefined;
+  const chunks: Buffer[] = [];
+  for await (const c of req) chunks.push(c as Buffer);
+  if (chunks.length === 0) return undefined;
+  try { return JSON.parse(Buffer.concat(chunks).toString('utf8')); }
+  catch { throw new HttpError(400, 'invalid JSON body'); }
+}
+
+function send(res: ServerResponse, code: number, body: unknown): void {
+  res.writeHead(code, { 'content-type': 'application/json' });
+  res.end(JSON.stringify(body));
+}
