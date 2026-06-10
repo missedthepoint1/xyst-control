@@ -4,6 +4,7 @@ import { randomUUID } from 'node:crypto';
 import type { CameraDriver } from './driver.js';
 import type { CameraProfile, CameraState, ControlId, ControlSettings, CameraPreset } from './types.js';
 import { XCProtocolDriver, type XCDriverOptions } from './xc/driver.js';
+import { R5CBrowserRemoteDriver } from './r5c/driver.js';
 
 interface ConfigFile { cameras: CameraProfile[] }
 
@@ -113,7 +114,9 @@ export class CameraManager extends EventEmitter {
 
   private makeDriver(profile: CameraProfile): void {
     if (this.drivers.has(profile.id)) return;
-    const driver = new XCProtocolDriver(profile, this.driverOpts); // r5c added in Phase 4
+    const driver: CameraDriver = profile.driver === 'r5c'
+      ? new R5CBrowserRemoteDriver(profile)
+      : new XCProtocolDriver(profile, this.driverOpts);
     driver.on('state', (s) => this.emit('state', profile.id, s));
     driver.on('status', (st) => this.emit('status', profile.id, st));
     driver.on('error', (e) => this.emit('camera-error', profile.id, e));
