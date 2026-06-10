@@ -43,4 +43,16 @@ describe('XCProtocolDriver streaming', () => {
     expect(drv.status).toBe('connected');
     expect(drv.getState().model).toBe('Canon EOS C300 Mark III');
   });
+
+  it('preserves a control list when a body delta carries only the value', async () => {
+    cam = new FakeCamera();
+    const host = await cam.listen();
+    drv = makeDriver(host);
+    await drv.connect();
+    const before = drv.getState().controls.iso?.list?.length ?? 0;
+    expect(before).toBeGreaterThan(1);
+    cam.pushDelta({ 'c.1.me.iso': '3200' });
+    await vi.waitFor(() => expect(drv.getState().controls.iso?.value).toBe(3200), { timeout: 1000 });
+    expect(drv.getState().controls.iso?.list?.length).toBe(before); // list NOT wiped
+  });
 });

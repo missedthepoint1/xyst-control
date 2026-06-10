@@ -134,10 +134,12 @@ export class CameraManager extends EventEmitter {
 
 function extractSettings(state: CameraState): ControlSettings {
   const out: ControlSettings = {};
-  // 'gain' is intentionally excluded: it is the alternate exposure unit to 'iso'
-  // (both write c.1.me.isogain.mode) and the app exposes ISO as the exposure control.
+  // 'gain' is excluded: alternate exposure unit to 'iso' (both write c.1.me.isogain.mode).
   const ids: ControlId[] = ['iso', 'shutter', 'iris', 'wb', 'wbKelvin', 'nd'];
   for (const id of ids) {
+    // Only capture Kelvin when WB is actually in kelvin mode — otherwise recall would
+    // force c.1.wb=kelvin and clobber a preset/auto WB mode.
+    if (id === 'wbKelvin' && state.controls.wb?.value !== 'kelvin') continue;
     const c = state.controls[id];
     if (c?.available && c.value !== undefined) out[id] = c.value;
   }

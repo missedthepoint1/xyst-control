@@ -2,6 +2,7 @@ import { EventEmitter } from 'node:events';
 import type { CameraDriver } from '../driver.js';
 import type {
   CameraProfile, CameraState, CameraSnapshot, ConnectionStatus, ControlId, ControlSettings,
+  ControlState,
 } from '../types.js';
 import { xcRequest } from './client.js';
 import { interpretInfo } from './interpret.js';
@@ -125,7 +126,17 @@ export class XCProtocolDriver extends EventEmitter implements CameraDriver {
     if ('f.rec.status' in map) {
       this.snapshot.record = { ...this.snapshot.record, ...merged.record };
     }
-    this.snapshot.controls = { ...this.snapshot.controls, ...merged.controls };
+    // Deep-merge each control so a value-only delta keeps the previously-discovered
+    // list/min/max/mode (interpretInfo emits `undefined` for keys absent from a delta).
+    const controls = { ...this.snapshot.controls };
+    for (const [id, c] of Object.entries(merged.controls)) {
+      const key = id as ControlId;
+      const prev = controls[key];
+      if (!prev) { controls[key] = c; continue; }
+      const defined = Object.fromEntries(Object.entries(c).filter(([, v]) => v !== undefined));
+      controls[key] = { ...prev, ...defined } as ControlState;
+    }
+    this.snapshot.controls = controls;
   }
 
   private startPolling(): void {

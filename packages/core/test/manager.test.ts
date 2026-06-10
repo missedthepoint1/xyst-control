@@ -149,4 +149,16 @@ describe('CameraManager', () => {
     await mgr.deletePreset('cam-1', 'nonexistent-id');
     expect(mgr.listPresets('cam-1')).toHaveLength(1);
   });
+
+  it('does not capture wbKelvin when WB is not in kelvin mode', async () => {
+    cam = new FakeCamera();
+    const host = await cam.listen();
+    mgr = new CameraManager(configWith(host), { pollMs: 50 });
+    await mgr.load();
+    await mgr.connect('cam-1');
+    await mgr.setControl('cam-1', 'wb', 'daylight');
+    const preset = await mgr.savePreset('cam-1', 'Daylight');
+    expect(preset.settings.wb).toBe('daylight');
+    expect(preset.settings.wbKelvin).toBeUndefined();
+  });
 });
