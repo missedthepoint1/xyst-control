@@ -1,4 +1,4 @@
-import type { ControlId } from '../types.js';
+import type { ControlId, ControlSettings } from '../types.js';
 
 export function buildRecordParams(start: boolean): Record<string, string> {
   return { 'f.rec': start ? 'on' : 'off' };
@@ -37,4 +37,14 @@ export function buildControlParams(id: ControlId, value: string | number): Recor
     case 'nd':
       return { 'c.1.nd.filter': v };
   }
+}
+
+/** Merge several control changes into a single control.cgi parameter object. */
+export function buildSettingsParams(settings: ControlSettings): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const [id, value] of Object.entries(settings)) {
+    if (value === undefined) continue;
+    Object.assign(out, buildControlParams(id as ControlId, value));
+  }
+  return out;
 }

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { buildControlParams, buildRecordParams } from '../src/xc/commands.js';
+import { buildControlParams, buildRecordParams, buildSettingsParams } from '../src/xc/commands.js';
 
 describe('buildRecordParams', () => {
   it('maps start/stop to f.rec', () => {
@@ -55,5 +55,31 @@ describe('buildControlParams', () => {
       'c.1.me.gain.mode': 'manual',
       'c.1.me.gain': '120',
     });
+  });
+});
+
+describe('buildSettingsParams', () => {
+  it('merges multiple controls into one param object', () => {
+    const params = buildSettingsParams({ iso: 800, nd: 400, wbKelvin: 5600 });
+    expect(params).toMatchObject({
+      'c.1.exp': 'manual',
+      'c.1.me.isogain.mode': 'iso',
+      'c.1.me.iso.mode': 'manual',
+      'c.1.me.iso': '800',
+      'c.1.wb': 'kelvin',
+      'c.1.wb.kelvin': '5600',
+      'c.1.nd.filter': '400',
+    });
+  });
+
+  it('returns an empty object for empty settings', () => {
+    expect(buildSettingsParams({})).toEqual({});
+  });
+
+  it('later controls override shared keys deterministically', () => {
+    const params = buildSettingsParams({ iso: 400, shutter: 125 });
+    expect(params['c.1.exp']).toBe('manual');
+    expect(params['c.1.me.iso']).toBe('400');
+    expect(params['c.1.me.shutter']).toBe('125');
   });
 });
