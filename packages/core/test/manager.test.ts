@@ -161,4 +161,19 @@ describe('CameraManager', () => {
     expect(preset.settings.wb).toBe('daylight');
     expect(preset.settings.wbKelvin).toBeUndefined();
   });
+
+  it('routes an r5c profile to the stub driver (error status, control rejects)', async () => {
+    const dir = mkdtempSync(join(tmpdir(), 'xyst-'));
+    const file = join(dir, 'cameras.json');
+    writeFileSync(file, JSON.stringify({
+      cameras: [{ id: 'r5c-1', name: 'R5 C', driver: 'r5c', host: '10.0.0.9' }],
+    }));
+    mgr = new CameraManager(file, { pollMs: 50 });
+    await mgr.load();
+    await mgr.connect('r5c-1'); // stub connect() resolves, sets status 'error'
+    const s = mgr.getState('r5c-1');
+    expect(s?.status).toBe('error');
+    expect(s?.lastError).toMatch(/endpoints/i);
+    await expect(mgr.startRecording('r5c-1')).rejects.toThrow(/Phase 4|endpoints/i);
+  });
 });
