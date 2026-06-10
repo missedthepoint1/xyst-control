@@ -53,6 +53,30 @@ export function createApiServer(mgr: CameraManager, _opts: ApiServerOptions = {}
   router.add('DELETE', '/api/cameras/:id/presets/:presetId', ({ params }) =>
     mgr.deletePreset(params.id!, params.presetId!).then(ok));
 
+  router.add('GET', '/api/events', ({ req, res }) => {
+    res.writeHead(200, {
+      'content-type': 'text/event-stream',
+      'cache-control': 'no-cache',
+      connection: 'keep-alive',
+      'access-control-allow-origin': '*',
+    });
+    res.write('event: hello\ndata: {}\n\n');
+    const onState = (id: string, s: unknown) => sse(res, 'state', { cameraId: id, state: s });
+    const onStatus = (id: string, st: unknown) => sse(res, 'status', { cameraId: id, status: st });
+    const onPresets = (id: string, p: unknown) => sse(res, 'presets', { cameraId: id, presets: p });
+    mgr.on('state', onState);
+    mgr.on('status', onStatus);
+    mgr.on('presets', onPresets);
+    const keepAlive = setInterval(() => { if (!res.writableEnded) res.write(': ping\n\n'); }, 15000);
+    req.on('close', () => {
+      clearInterval(keepAlive);
+      mgr.off('state', onState);
+      mgr.off('status', onStatus);
+      mgr.off('presets', onPresets);
+    });
+    return undefined; // streaming response managed here; handle() must not double-send
+  });
+
   return createServer((req, res) => void handle(router, req, res));
 }
 
@@ -101,4 +125,9 @@ async function readJson(req: IncomingMessage): Promise<unknown> {
 function send(res: ServerResponse, code: number, body: unknown): void {
   res.writeHead(code, { 'content-type': 'application/json' });
   res.end(JSON.stringify(body));
+}
+
+function sse(res: ServerResponse, event: string, data: unknown): void {
+  if (res.writableEnded) return;
+  res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
 }
