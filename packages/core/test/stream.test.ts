@@ -26,6 +26,25 @@ function streamServer(parts: string[], boundary = 'xystbnd'): Promise<string> {
   }));
 }
 
+function fragmentServer(fragments: string[]): Promise<string> {
+  srv = createServer((_req, res) => {
+    res.writeHead(200, {
+      'content-type': 'multipart/x-mixed-replace; boundary=xystbnd',
+      'livescope-status': '0',
+    });
+    let i = 0;
+    const writeNext = () => {
+      if (i >= fragments.length) return;
+      res.write(fragments[i]); i++;
+      setTimeout(writeNext, 20);
+    };
+    writeNext();
+  });
+  return new Promise((resolve) => srv!.listen(0, '127.0.0.1', () => {
+    resolve(`127.0.0.1:${(srv!.address() as import('node:net').AddressInfo).port}`);
+  }));
+}
+
 describe('openInfoStream', () => {
   it('emits the initial full snapshot then deltas', async () => {
     const host = await streamServer([
@@ -58,5 +77,25 @@ describe('openInfoStream', () => {
     const countAtClose = deltas.length;
     await new Promise((r) => setTimeout(r, 120));
     expect(deltas.length).toBe(countAtClose);
+  });
+
+  it('reassembles a part body split across read chunks (no drop/corruption)', async () => {
+    const host = await fragmentServer([
+      '--xystbnd\r\nContent-Type: text/plain\r\n\r\nc.1.me.',   // body split mid-key
+      'iso:=1600\r\n',
+      '--xystbnd\r\nContent-Type: text/plain\r\n\r\nf.rec.status:=rec\r\n',
+    ]);
+    const deltas: Array<Record<string, string>> = [];
+    const handle = openInfoStream(host, {}, { onDelta: (m) => deltas.push(m), onError: () => {} });
+    await vi.waitFor(
+      () => expect(deltas.some((d) => d['f.rec.status'] === 'rec')).toBe(true),
+      { timeout: 2000 },
+    );
+    handle.close();
+    // the iso part must arrive intact, exactly once, with the FULL key — no phantom 'iso'
+    const isoDeltas = deltas.filter((d) => 'c.1.me.iso' in d);
+    expect(isoDeltas).toHaveLength(1);
+    expect(isoDeltas[0]['c.1.me.iso']).toBe('1600');
+    expect(deltas.some((d) => 'iso' in d && !('c.1.me.iso' in d))).toBe(false); // no phantom key
   });
 });

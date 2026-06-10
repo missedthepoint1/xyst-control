@@ -80,14 +80,17 @@ async function run(
       if (seg.trim()) emitPart(delim + seg, delim, handlers);
     }
 
-    // Also flush the trailing segment if it already has a complete header+body.
-    // The server writes each part terminated with \r\n, so a complete part will
-    // have both the header separator (\r\n\r\n) and a body ending in \r\n.
-    if (buf.includes('\r\n\r\n')) {
+    // Only flush the trailing segment early if its body is terminated (ends in CRLF/LF),
+    // not merely header-complete — otherwise a body split across TCP reads is corrupted.
+    if (buf.includes('\r\n\r\n') && /\r?\n$/.test(buf)) {
       const trailing = buf;
       buf = '';
       emitPart(delim + trailing, delim, handlers);
     }
+  }
+  // On a clean stream end, emit any buffered complete part that wasn't yet flushed.
+  if (buf.includes('\r\n\r\n')) {
+    emitPart(delim + buf, delim, handlers);
   }
   if (!isClosed()) throw new Error('stream ended');
 }
