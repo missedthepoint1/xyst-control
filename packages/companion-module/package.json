@@ -10,7 +10,8 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@companion-module/base": "~1.11.0"
+    "@companion-module/base": "~1.11.0",
+    "@xyst/core": "workspace:*"
   },
   "devDependencies": {
     "@companion-module/tools": "~2.1.0",
