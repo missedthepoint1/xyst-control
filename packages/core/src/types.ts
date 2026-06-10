@@ -54,4 +54,17 @@ export interface CameraProfile {
   driver: 'xc' | 'r5c';
   host: string;
   auth?: CameraAuth;
+  presets?: CameraPreset[];
+}
+
+/** A set of control values to apply together (preset payload / bulk apply). */
+export type ControlSettings = Partial<Record<ControlId, string | number>>;
+
+/** An app-managed snapshot of camera settings (NOT a camera-native PTZ preset). */
+export interface CameraPreset {
+  id: string;
+  name: string;
+  settings: ControlSettings;
+  /** Exposure mode captured at save time (usually 'manual'). */
+  exposureMode?: string;
 }

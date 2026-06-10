@@ -1,5 +1,5 @@
 import { EventEmitter } from 'node:events';
-import type { CameraState, ControlId, ConnectionStatus } from './types.js';
+import type { CameraState, ControlId, ConnectionStatus, ControlSettings } from './types.js';
 
 export interface CameraDriverEvents {
   state: (state: CameraState) => void;
@@ -16,4 +16,6 @@ export interface CameraDriver extends EventEmitter {
   startRecording(): Promise<void>;
   stopRecording(): Promise<void>;
   setControl(id: ControlId, value: string | number): Promise<void>;
+  /** Apply several controls together (capability-aware) in one request. */
+  applySettings(settings: ControlSettings): Promise<void>;
 }
