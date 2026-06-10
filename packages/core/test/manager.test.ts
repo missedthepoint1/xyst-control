@@ -176,4 +176,24 @@ describe('CameraManager', () => {
     expect(s?.lastError).toMatch(/endpoints/i);
     await expect(mgr.startRecording('r5c-1')).rejects.toThrow(/Phase 4|endpoints/i);
   });
+
+  it('recalls a preset by its (global) id across cameras', async () => {
+    cam = new FakeCamera();
+    const host = await cam.listen();
+    mgr = new CameraManager(configWith(host), { pollMs: 50 });
+    await mgr.load();
+    await mgr.connect('cam-1');
+    const preset = await mgr.savePreset('cam-1', 'X'); // captures fixture nd=400
+    await mgr.setControl('cam-1', 'nd', 1600);
+    await mgr.recallPresetById(preset.id);
+    expect(cam.controlLog.at(-1)).toContain('c.1.nd.filter=400'); // restored to saved value
+  });
+
+  it('throws for an unknown preset id', async () => {
+    cam = new FakeCamera();
+    const host = await cam.listen();
+    mgr = new CameraManager(configWith(host), { pollMs: 50 });
+    await mgr.load();
+    await expect(mgr.recallPresetById('nope')).rejects.toThrow(/preset/i);
+  });
 });

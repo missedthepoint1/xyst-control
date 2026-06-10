@@ -83,6 +83,15 @@ export class CameraManager extends EventEmitter {
     await d.applySettings(applicable);
   }
 
+  async recallPresetById(presetId: string): Promise<void> {
+    for (const [cameraId, profile] of this.profiles) {
+      if ((profile.presets ?? []).some((p) => p.id === presetId)) {
+        return this.recallPreset(cameraId, presetId);
+      }
+    }
+    throw new Error(`no preset with id ${presetId}`);
+  }
+
   async deletePreset(cameraId: string, presetId: string): Promise<void> {
     const profile = this.profiles.get(cameraId);
     if (!profile) throw new Error(`no camera with id ${cameraId}`);
