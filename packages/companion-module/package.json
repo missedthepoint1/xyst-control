@@ -4,7 +4,7 @@
   "type": "module",
   "main": "dist/index.js",
   "scripts": {
-    "build": "companion-module-build",
+    "build": "tsc && companion-module-build",
     "dev": "companion-module-build --dev",
     "test": "vitest run",
     "typecheck": "tsc --noEmit"
