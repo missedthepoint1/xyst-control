@@ -78,4 +78,45 @@ describe('CameraManager', () => {
     mgr = new CameraManager(file, { pollMs: 50 });
     await expect(mgr.load()).rejects.toThrow(/invalid camera config/);
   });
+
+  it('saves a preset capturing the current settings and persists it', async () => {
+    cam = new FakeCamera();
+    const host = await cam.listen();
+    const file = configWith(host);
+    mgr = new CameraManager(file, { pollMs: 50 });
+    await mgr.load();
+    await mgr.connect('cam-1');
+    const preset = await mgr.savePreset('cam-1', 'Look A');
+    expect(preset.name).toBe('Look A');
+    expect(preset.settings.iso).toBe(800);
+    expect(preset.settings.gain).toBeUndefined(); // gain excluded (mutually exclusive with iso)
+    const saved = JSON.parse(readFileSync(file, 'utf8'));
+    expect(saved.cameras[0].presets.map((p: any) => p.name)).toContain('Look A');
+  });
+
+  it('recalls a preset by applying its settings to the camera', async () => {
+    cam = new FakeCamera();
+    const host = await cam.listen();
+    mgr = new CameraManager(configWith(host), { pollMs: 50 });
+    await mgr.load();
+    await mgr.connect('cam-1');
+    const preset = await mgr.savePreset('cam-1', 'Look A');
+    await mgr.setControl('cam-1', 'iso', 3200);
+    await mgr.recallPreset('cam-1', preset.id);
+    expect(cam.controlLog.at(-1)).toContain('c.1.me.iso=800');
+  });
+
+  it('deletes a preset and persists the removal', async () => {
+    cam = new FakeCamera();
+    const host = await cam.listen();
+    const file = configWith(host);
+    mgr = new CameraManager(file, { pollMs: 50 });
+    await mgr.load();
+    await mgr.connect('cam-1');
+    const preset = await mgr.savePreset('cam-1', 'Temp');
+    await mgr.deletePreset('cam-1', preset.id);
+    expect(mgr.listPresets('cam-1')).toHaveLength(0);
+    const saved = JSON.parse(readFileSync(file, 'utf8'));
+    expect(saved.cameras[0].presets ?? []).toHaveLength(0);
+  });
 });

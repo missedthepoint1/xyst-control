@@ -39,6 +39,8 @@ export function buildControlParams(id: ControlId, value: string | number): Recor
   }
 }
 
+// Note: callers must not pass both `iso` and `gain` — they are mutually exclusive
+// exposure units (both set c.1.me.isogain.mode); the last one wins otherwise.
 /** Merge several control changes into a single control.cgi parameter object. */
 export function buildSettingsParams(settings: ControlSettings): Record<string, string> {
   const out: Record<string, string> = {};

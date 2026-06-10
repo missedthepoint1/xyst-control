@@ -1,7 +1,7 @@
 import { EventEmitter } from 'node:events';
 import { readFile, writeFile } from 'node:fs/promises';
 import type { CameraDriver } from './driver.js';
-import type { CameraProfile, CameraState, ControlId } from './types.js';
+import type { CameraProfile, CameraState, ControlId, ControlSettings, CameraPreset } from './types.js';
 import { XCProtocolDriver, type XCDriverOptions } from './xc/driver.js';
 
 interface ConfigFile { cameras: CameraProfile[] }
@@ -9,6 +9,7 @@ interface ConfigFile { cameras: CameraProfile[] }
 export class CameraManager extends EventEmitter {
   private profiles = new Map<string, CameraProfile>();
   private drivers = new Map<string, CameraDriver>();
+  private presetSeq = 0;
 
   constructor(private configPath: string, private driverOpts: XCDriverOptions = {}) {
     super();
@@ -50,6 +51,50 @@ export class CameraManager extends EventEmitter {
       (d) => (start ? d.startRecording() : d.stopRecording())));
   }
 
+  listPresets(cameraId: string): CameraPreset[] {
+    return this.profiles.get(cameraId)?.presets ?? [];
+  }
+
+  async savePreset(cameraId: string, name: string): Promise<CameraPreset> {
+    const profile = this.profiles.get(cameraId);
+    if (!profile) throw new Error(`no camera with id ${cameraId}`);
+    const state = this.driver(cameraId).getState();
+    const preset: CameraPreset = {
+      id: this.nextPresetId(cameraId),
+      name,
+      exposureMode: state.exposureMode,
+      settings: extractSettings(state),
+    };
+    profile.presets = [...(profile.presets ?? []), preset];
+    await this.save();
+    this.emit('presets', cameraId, profile.presets);
+    return preset;
+  }
+
+  async recallPreset(cameraId: string, presetId: string): Promise<void> {
+    const preset = this.listPresets(cameraId).find((p) => p.id === presetId);
+    if (!preset) throw new Error(`no preset ${presetId} on ${cameraId}`);
+    const state = this.driver(cameraId).getState();
+    const applicable: ControlSettings = {};
+    for (const [id, value] of Object.entries(preset.settings)) {
+      if (state.controls[id as ControlId]?.available) applicable[id as ControlId] = value;
+    }
+    await this.driver(cameraId).applySettings(applicable);
+  }
+
+  async deletePreset(cameraId: string, presetId: string): Promise<void> {
+    const profile = this.profiles.get(cameraId);
+    if (!profile) throw new Error(`no camera with id ${cameraId}`);
+    profile.presets = (profile.presets ?? []).filter((p) => p.id !== presetId);
+    await this.save();
+    this.emit('presets', cameraId, profile.presets);
+  }
+
+  private nextPresetId(cameraId: string): string {
+    this.presetSeq += 1;
+    return `${cameraId}-p${this.presetSeq}`;
+  }
+
   async addCamera(profile: CameraProfile): Promise<void> {
     if (this.profiles.has(profile.id)) {
       throw new Error(`camera already exists: ${profile.id}`);
@@ -83,4 +128,16 @@ export class CameraManager extends EventEmitter {
     const cfg: ConfigFile = { cameras: this.listProfiles() };
     await writeFile(this.configPath, JSON.stringify(cfg, null, 2));
   }
+}
+
+function extractSettings(state: CameraState): ControlSettings {
+  const out: ControlSettings = {};
+  // 'gain' is intentionally excluded: it is the alternate exposure unit to 'iso'
+  // (both write c.1.me.isogain.mode) and the app exposes ISO as the exposure control.
+  const ids: ControlId[] = ['iso', 'shutter', 'iris', 'wb', 'wbKelvin', 'nd'];
+  for (const id of ids) {
+    const c = state.controls[id];
+    if (c?.available && c.value !== undefined) out[id] = c.value;
+  }
+  return out;
 }
