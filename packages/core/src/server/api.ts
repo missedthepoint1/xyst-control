@@ -15,6 +15,9 @@ function statusSummary(s: CameraState) {
 export interface ApiServerOptions { sse?: boolean }
 
 export function createApiServer(mgr: CameraManager, _opts: ApiServerOptions = {}): Server {
+  // Each SSE client registers 3 manager listeners; lift Node's 10-listener warning cap.
+  mgr.setMaxListeners(0);
+
   const router = new Router();
 
   router.add('GET', '/api/health', () => ({ ok: true }));
