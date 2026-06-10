@@ -12,9 +12,15 @@ export function registerIpc(mgr: CameraManager, getWindow: () => BrowserWindow |
   ipcMain.handle('camera:setControl', (_e, id: string, control: ControlId, value: string | number) =>
     mgr.setControl(id, control, value));
   ipcMain.handle('camera:add', (_e, profile) => mgr.addCamera(profile));
+  ipcMain.handle('camera:presets', (_e, id: string) => mgr.listPresets(id));
+  ipcMain.handle('camera:savePreset', (_e, id: string, name: string) => mgr.savePreset(id, name));
+  ipcMain.handle('camera:recallPreset', (_e, id: string, presetId: string) => mgr.recallPreset(id, presetId));
+  ipcMain.handle('camera:deletePreset', (_e, id: string, presetId: string) => mgr.deletePreset(id, presetId));
 
   const push = (id: string, state: unknown) =>
     getWindow()?.webContents.send('camera:state', id, state);
   mgr.on('state', push);
   mgr.on('status', (id) => push(id, mgr.getState(id)));
+  mgr.on('presets', (id: string, presets: unknown) =>
+    getWindow()?.webContents.send('camera:presets', id, presets));
 }

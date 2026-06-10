@@ -14,6 +14,15 @@ const api = {
     ipcRenderer.on('camera:state', h);
     return () => ipcRenderer.off('camera:state', h);
   },
+  presets: (id: string) => ipcRenderer.invoke('camera:presets', id),
+  savePreset: (id: string, name: string) => ipcRenderer.invoke('camera:savePreset', id, name),
+  recallPreset: (id: string, presetId: string) => ipcRenderer.invoke('camera:recallPreset', id, presetId),
+  deletePreset: (id: string, presetId: string) => ipcRenderer.invoke('camera:deletePreset', id, presetId),
+  onPresets: (cb: (id: string, presets: unknown) => void) => {
+    const h = (_e: unknown, id: string, presets: unknown) => cb(id, presets);
+    ipcRenderer.on('camera:presets', h);
+    return () => ipcRenderer.off('camera:presets', h);
+  },
 };
 
 contextBridge.exposeInMainWorld('xyst', api);
