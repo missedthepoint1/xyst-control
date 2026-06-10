@@ -47,4 +47,13 @@ describe('buildControlParams', () => {
   it('nd sets the filter value', () => {
     expect(buildControlParams('nd', 400)).toEqual({ 'c.1.nd.filter': '400' });
   });
+
+  it('gain forces manual exposure + manual gain in gain mode', () => {
+    expect(buildControlParams('gain', 120)).toEqual({
+      'c.1.exp': 'manual',
+      'c.1.me.isogain.mode': 'gain',
+      'c.1.me.gain.mode': 'manual',
+      'c.1.me.gain': '120',
+    });
+  });
 });

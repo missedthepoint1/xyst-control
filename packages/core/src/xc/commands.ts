@@ -26,6 +26,7 @@ export function buildControlParams(id: ControlId, value: string | number): Recor
         'c.1.me.gain': v,
       };
     case 'shutter':
+      // Phase 1: concrete speed only; slow/clearscan/angle modes are a later refinement.
       return { 'c.1.exp': 'manual', 'c.1.me.shutter.mode': 'speed', 'c.1.me.shutter': v };
     case 'iris':
       return { 'c.1.exp': 'manual', 'c.1.me.iris': v };
