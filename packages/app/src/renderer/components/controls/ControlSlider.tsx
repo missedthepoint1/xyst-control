@@ -6,19 +6,19 @@ export function ControlSlider({ label, value, min, max, format, onCommit }: {
 }) {
   const [local, setLocal] = useState(value ?? min);
   useEffect(() => { if (value !== undefined) setLocal(value); }, [value]);
+  const pct = max > min ? ((local - min) / (max - min)) * 100 : 0;
   return (
-    <label style={{ display: 'grid', gridTemplateColumns: '88px 1fr 56px', alignItems: 'center', gap: 10 }}>
-      <span style={{ color: 'var(--muted)', fontSize: 13 }}>{label}</span>
+    <label className="ctl ctl--slider">
+      <span className="ctl__label">{label}</span>
       <input
+        className="range"
         type="range" min={min} max={max} value={local}
+        style={{ ['--pct' as string]: `${pct}%` }}
         onChange={(e) => setLocal(Number(e.target.value))}
         onMouseUp={() => onCommit(local)}
         onTouchEnd={() => onCommit(local)}
-        style={{ accentColor: 'var(--accent)' }}
       />
-      <span style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
-        {format ? format(local) : local}
-      </span>
+      <span className="ctl__value">{format ? format(local) : local}</span>
     </label>
   );
 }

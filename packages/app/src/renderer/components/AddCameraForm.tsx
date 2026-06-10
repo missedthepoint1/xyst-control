@@ -21,21 +21,13 @@ export function AddCameraForm({ onAdded }: { onAdded: () => void }) {
     }
   };
 
-  const input: React.CSSProperties = {
-    background: 'var(--surface-2)', border: '1px solid var(--border)',
-    borderRadius: 8, padding: '8px 10px', color: 'var(--text)', width: '100%',
-  };
-
   return (
-    <section style={{
-      background: 'var(--surface)', border: '1px dashed var(--border)',
-      borderRadius: 'var(--radius)', padding: 16, display: 'grid', gap: 10, alignContent: 'start',
-    }}>
-      <div style={{ fontWeight: 650, color: 'var(--muted)' }}>Add camera</div>
-      <input style={input} value={name} onChange={(e) => setName(e.target.value)} placeholder="Name" />
-      <input style={input} value={host} onChange={(e) => setHost(e.target.value)} placeholder="IP address" />
-      <button className="btn" disabled={busy} onClick={add}>{busy ? 'Connecting…' : 'Add + Connect'}</button>
-      {error && <div style={{ color: 'var(--rec)', fontSize: 12 }}>{error}</div>}
+    <section className="card add">
+      <div className="add__title"><span className="plus">+</span> Add camera</div>
+      <input className="input" value={name} onChange={(e) => setName(e.target.value)} placeholder="Name" />
+      <input className="input" value={host} onChange={(e) => setHost(e.target.value)} placeholder="IP address" />
+      <button className="btn btn--accent" disabled={busy} onClick={add}>{busy ? 'Connecting…' : 'Add + Connect'}</button>
+      {error && <div className="err">{error}</div>}
     </section>
   );
 }

@@ -13,25 +13,20 @@ export function PresetBar({ cameraId, presets }: { cameraId: string; presets: Ca
   };
 
   return (
-    <div style={{ marginTop: 12, display: 'grid', gap: 8 }}>
-      <div style={{ display: 'flex', gap: 8 }}>
+    <div className="presets">
+      <div className="presets__row">
         <input
-          value={name} onChange={(e) => setName(e.target.value)} placeholder="Preset name"
-          style={{ flex: 1, background: 'var(--surface-2)', color: 'var(--text)',
-            border: '1px solid var(--border)', borderRadius: 8, padding: '6px 10px' }}
+          className="input" value={name} onChange={(e) => setName(e.target.value)} placeholder="Preset name"
         />
         <button className="btn" disabled={busy} onClick={save}>Save</button>
       </div>
       {presets.length > 0 && (
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+        <div className="chips">
           {presets.map((p) => (
-            <span key={p.id} style={{ display: 'inline-flex', alignItems: 'center', gap: 6,
-              background: 'var(--surface-2)', border: '1px solid var(--border)',
-              borderRadius: 999, padding: '4px 6px 4px 12px' }}>
-              <button className="btn--ghost" style={{ border: 'none', padding: 0, background: 'none' }}
-                title="Recall" onClick={() => window.xyst.recallPreset(cameraId, p.id)}>{p.name}</button>
-              <button className="btn--ghost" title="Delete"
-                style={{ border: 'none', padding: '0 4px', background: 'none', color: 'var(--muted)' }}
+            <span key={p.id} className="chip">
+              <button className="chip__name" title="Recall"
+                onClick={() => window.xyst.recallPreset(cameraId, p.id)}>{p.name}</button>
+              <button className="chip__del" title="Delete"
                 onClick={() => window.xyst.deletePreset(cameraId, p.id)}>×</button>
             </span>
           ))}

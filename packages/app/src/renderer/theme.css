@@ -1,18 +1,81 @@
 :root {
-  --bg: #0b0d10;
-  --surface: #14181d;
-  --surface-2: #1b2127;
-  --border: #2a323b;
-  --text: #e7ecf2;
-  --muted: #8a97a6;
-  --accent: #4da3ff;
-  --rec: #ff3b3b;
-  --rec-glow: rgba(255, 59, 59, 0.45);
-  --ok: #34d399;
-  --radius: 12px;
-  --shadow: 0 6px 24px rgba(0, 0, 0, 0.4);
+  /* Aurora palette */
+  --bg: #08080e;
+  --text: #eef1f8;
+  --muted: #97a0b8;
+  --faint: #6b7390;
+
+  /* glass surfaces */
+  --glass: linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.018));
+  --glass-2: linear-gradient(180deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0.025));
+  --border: rgba(255, 255, 255, 0.09);
+  --border-strong: rgba(255, 255, 255, 0.16);
+
+  /* accent (violet -> cyan) */
+  --accent: #8b7bff;
+  --accent-2: #36d6e7;
+  --accent-grad: linear-gradient(120deg, #8b7bff 0%, #c46bff 45%, #36d6e7 100%);
+  --accent-glow: rgba(139, 123, 255, 0.5);
+
+  --ok: #34e0a1;
+  --warn: #ffce5a;
+  --rec: #ff385f;
+  --rec-2: #ff6a3d;
+  --rec-grad: linear-gradient(135deg, #ff385f, #ff6a3d);
+  --rec-glow: rgba(255, 56, 95, 0.55);
+
+  --radius: 16px;
+  --radius-sm: 11px;
+  --shadow: 0 16px 48px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  --shadow-sm: 0 6px 20px rgba(0, 0, 0, 0.4);
 }
+
 * { box-sizing: border-box; }
-body { margin: 0; background: var(--bg); color: var(--text);
-  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; }
-button { font: inherit; color: inherit; cursor: pointer; }
+
+html, body, #root { height: 100%; }
+
+body {
+  margin: 0;
+  color: var(--text);
+  font-family: ui-sans-serif, system-ui, -apple-system, "SF Pro Display", "Segoe UI", sans-serif;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  background-color: var(--bg);
+  /* Aurora glow */
+  background-image:
+    radial-gradient(1000px 680px at 8% -12%, rgba(139, 123, 255, 0.28), transparent 60%),
+    radial-gradient(880px 560px at 102% -6%, rgba(244, 86, 196, 0.20), transparent 55%),
+    radial-gradient(820px 640px at 50% 118%, rgba(54, 214, 231, 0.18), transparent 60%);
+  background-attachment: fixed;
+}
+
+button { font: inherit; color: inherit; cursor: pointer; border: none; background: none; }
+input, select, button { font-family: inherit; }
+
+::selection { background: rgba(139, 123, 255, 0.35); }
+
+/* refined scrollbars */
+::-webkit-scrollbar { width: 11px; height: 11px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.12);
+  border-radius: 999px;
+  border: 3px solid transparent;
+  background-clip: padding-box;
+}
+::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.22); background-clip: padding-box; }
+
+@keyframes recPulse {
+  0%, 100% { box-shadow: 0 0 0 1px rgba(255, 56, 95, 0.55), 0 0 22px var(--rec-glow); }
+  50% { box-shadow: 0 0 0 1px rgba(255, 56, 95, 0.9), 0 0 36px var(--rec-glow); }
+}
+
+@keyframes dotPulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(0.8); }
+}
+
+@keyframes floatIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
