@@ -27,8 +27,10 @@ export function CameraPanel({ state }: { state: CameraState }) {
   const { presets } = usePresets(state.id);
   const rec = state.record.recording;
   const [advanced, setAdvanced] = useState(false);
+  const [showOsd, setShowOsd] = useState(true);
   const [lastFocus, setLastFocus] = useState<{ x: number; y: number } | null>(null);
   const apiBase = useApiBase();
+  const hasVideo = !!state.video && state.video.type !== 'none';
 
   // Camera-style OSD info rendered ON the live feed (built from discovered state).
   const n = (v: unknown) => (typeof v === 'number' ? v : undefined);
@@ -55,7 +57,7 @@ export function CameraPanel({ state }: { state: CameraState }) {
   return (
     <section className={`card panel${rec ? ' is-rec' : ''}`}>
       <VideoSourceSelect current={state.video} onChange={(v) => window.xyst.setVideoSource(id, v)} />
-      <VideoPanel cameraId={id} source={state.video} recording={rec} apiBase={apiBase} osd={osd} onFocus={(x, y) => setLastFocus({ x, y })} />
+      <VideoPanel cameraId={id} source={state.video} recording={rec} apiBase={apiBase} osd={osd} showOsd={showOsd} onFocus={(x, y) => setLastFocus({ x, y })} />
       {state.video && state.video.type !== 'none' && (
         <FocusPointBar cameraId={id} lastFocus={lastFocus} />
       )}
@@ -76,7 +78,16 @@ export function CameraPanel({ state }: { state: CameraState }) {
         </div>
         <div className="panel__head-right">
           <button className="panel__remove" title="Remove camera" onClick={() => window.xyst.removeCamera(id)}>×</button>
-          <RecButton recording={rec} onToggle={() => window.xyst.record(id, !rec)} />
+          <div className="head-actions">
+            {hasVideo && (
+              <button type="button" className={`osd-btn${showOsd ? ' is-on' : ''}`}
+                title="Show camera info, face/eye boxes and focus guide on the live view"
+                onClick={() => setShowOsd((s) => !s)}>
+                <span className="ic" /> OSD
+              </button>
+            )}
+            <RecButton recording={rec} onToggle={() => window.xyst.record(id, !rec)} />
+          </div>
         </div>
       </header>
 

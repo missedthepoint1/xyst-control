@@ -7,9 +7,9 @@ export type OsdInfo = {
   rec: boolean; remaining?: number; battery?: string;
 };
 
-export function VideoPanel({ cameraId, source, recording, apiBase, name, osd, onSelect, onFocus }: {
+export function VideoPanel({ cameraId, source, recording, apiBase, name, osd, showOsd = true, onSelect, onFocus }: {
   cameraId: string; source?: VideoSource; recording: boolean; apiBase: string;
-  name?: string; osd?: OsdInfo; onSelect?: () => void; onFocus?: (x: number, y: number) => void;
+  name?: string; osd?: OsdInfo; showOsd?: boolean; onSelect?: () => void; onFocus?: (x: number, y: number) => void;
 }) {
   const type = source?.type ?? 'none';
   const imgRef = useRef<HTMLImageElement>(null);
@@ -18,7 +18,6 @@ export function VideoPanel({ cameraId, source, recording, apiBase, name, osd, on
   const [mark, setMark] = useState<{ x: number; y: number } | null>(null);
   const [boxes, setBoxes] = useState<DetectBox[]>([]);
   const [guide, setGuide] = useState<Guide | null>(null);
-  const [showDetect, setShowDetect] = useState(true); // app-drawn overlays (face/eye boxes, focus guide, name)
 
   useEffect(() => {
     if (type !== 'protocol' || !apiBase) return;
@@ -33,7 +32,7 @@ export function VideoPanel({ cameraId, source, recording, apiBase, name, osd, on
   }, [type, apiBase, cameraId]);
 
   useEffect(() => {
-    if (type === 'none' || !apiBase || !showDetect) { setBoxes([]); setGuide(null); return; }
+    if (type === 'none' || !apiBase || !showOsd) { setBoxes([]); setGuide(null); return; }
     let stopped = false; let timer: ReturnType<typeof setTimeout> | undefined;
     const poll = async () => {
       try {
@@ -45,7 +44,7 @@ export function VideoPanel({ cameraId, source, recording, apiBase, name, osd, on
     };
     poll();
     return () => { stopped = true; if (timer) clearTimeout(timer); };
-  }, [type, apiBase, cameraId, showDetect]);
+  }, [type, apiBase, cameraId, showOsd]);
 
   useEffect(() => {
     if (type !== 'capture' || !source?.deviceId) return;
@@ -85,7 +84,7 @@ export function VideoPanel({ cameraId, source, recording, apiBase, name, osd, on
       {type === 'capture' && <video ref={videoRef} className="video__img" autoPlay muted playsInline />}
       {(type === 'none' || err) && <div className="video__placeholder">{type === 'none' ? 'No video source' : 'No signal'}</div>}
       {mark && <span className="video__af" style={{ left: `${mark.x}%`, top: `${mark.y}%` }} />}
-      {!onSelect && showDetect && boxes.map((b, i) => (
+      {!onSelect && showOsd && boxes.map((b, i) => (
         <div key={i}
           className={`det det--${b.type}${b.track ? ' det--track' : ''}${b.main ? ' det--main' : ''}`}
           style={{
@@ -95,7 +94,7 @@ export function VideoPanel({ cameraId, source, recording, apiBase, name, osd, on
             height: `${(b.h / 10000) * 100}%`,
           }} />
       ))}
-      {!onSelect && showDetect && guide?.status && (
+      {!onSelect && showOsd && guide?.status && (
         <div className={`fguide${guide.angle <= 5 ? ' fguide--ok' : ''}`}
           style={{
             left: `${(guide.x / 9999 - (guide.w / 10000) / 2) * 100}%`,
@@ -106,29 +105,22 @@ export function VideoPanel({ cameraId, source, recording, apiBase, name, osd, on
           <span className="fguide__dir">{guide.angle <= 5 ? '● focus' : guide.dir === 'front' ? '◂ front ▸' : '▸ back ◂'}</span>
         </div>
       )}
-      {!onSelect && showDetect && osd && (
+      {!onSelect && showOsd && osd && (
         <div className="osd">
           {osd.rec && <span className="osd__rec"><span className="osd__dot" /> REC{osd.remaining != null ? ` · ${osd.remaining}m` : ''}</span>}
-          {osd.battery && <span className="osd__batt">{osd.battery}</span>}
           <div className="osd__bar">
             {osd.iso && <span>{osd.iso}</span>}
             {osd.shutter && <span>{osd.shutter}</span>}
             {osd.iris && <span>{osd.iris}</span>}
             {osd.wb && <span>{osd.wb}</span>}
             {osd.nd && <span>{osd.nd}</span>}
+            {osd.battery && <span className="osd__batt">{osd.battery}</span>}
           </div>
         </div>
       )}
-      {recording && (onSelect || !osd || !showDetect) && <span className="video__tally"><span className="video__dot" /> REC</span>}
-      {name && (onSelect || showDetect) && <span className="video__name">{name}</span>}
+      {recording && (onSelect || !osd || !showOsd) && <span className="video__tally"><span className="video__dot" /> REC</span>}
+      {name && (onSelect || showOsd) && <span className="video__name">{name}</span>}
     </div>
-    {!onSelect && type !== 'none' && (
-      <button type="button" className={`osd-toggle${showDetect ? ' is-on' : ''}`}
-        title="Show camera info, face/eye boxes and focus guide on the live view"
-        onClick={() => setShowDetect((s) => !s)}>
-        <span className="osd-toggle__dot" /> OSD {showDetect ? 'on' : 'off'}
-      </button>
-    )}
     </>
   );
 }
