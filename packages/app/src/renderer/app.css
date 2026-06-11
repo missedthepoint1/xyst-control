@@ -200,3 +200,21 @@
   background: var(--rec); color: #fff; font-size: 11px; font-weight: 700; padding: 4px 9px; border-radius: 7px;
   letter-spacing: 0.6px; box-shadow: 0 0 14px var(--rec-glow); }
 .video__tally .video__dot { width: 8px; height: 8px; border-radius: 50%; background: #fff; }
+
+.viewseg { margin-right: 4px; }
+/* AF tap marker */
+.video__af { position: absolute; width: 64px; height: 64px; transform: translate(-50%, -50%);
+  border: 2px solid #fff; border-radius: 8px; box-shadow: 0 0 0 1px rgba(0,0,0,0.4), 0 0 14px rgba(255,255,255,0.6);
+  pointer-events: none; animation: afPop .3s ease both; }
+@keyframes afPop { from { transform: translate(-50%, -50%) scale(1.6); opacity: 0; } to { transform: translate(-50%, -50%) scale(1); opacity: 1; } }
+.video { cursor: crosshair; }
+.video--tile { cursor: pointer; aspect-ratio: 16/9; margin: 0; }
+.video__name { position: absolute; bottom: 10px; left: 10px; background: rgba(0,0,0,0.55); color: #fff;
+  font-size: 12px; font-weight: 600; padding: 3px 9px; border-radius: 6px; backdrop-filter: blur(6px); }
+/* multiview grid */
+.multiview { display: grid; gap: 16px; grid-template-columns: repeat(auto-fill, minmax(440px, 1fr)); align-content: start; }
+.multiview__empty { color: var(--muted); padding: 40px; text-align: center; }
+.video--tile:hover { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent), 0 0 24px var(--accent-glow); }
+/* single-camera view */
+.single { max-width: 560px; display: grid; gap: 14px; }
+.single__back { justify-self: start; }
