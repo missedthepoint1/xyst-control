@@ -29,7 +29,7 @@ export function registerIpc(mgr: CameraManager, getWindow: () => BrowserWindow |
   const push = (id: string, state: unknown) =>
     getWindow()?.webContents.send('camera:state', id, state);
   mgr.on('state', push);
-  mgr.on('status', (id) => push(id, mgr.getState(id)));
+  mgr.on('status', (id) => { const s = mgr.getState(id); if (s) push(id, s); });
   mgr.on('presets', (id: string, presets: unknown) =>
     getWindow()?.webContents.send('camera:presets', id, presets));
   mgr.on('focusPoints', (id: string, pts: unknown) =>

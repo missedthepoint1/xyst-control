@@ -196,7 +196,8 @@ export class CameraManager extends EventEmitter {
     if (!profile) throw new Error(`no camera with id ${cameraId}`);
     profile.video = video;
     await this.save();
-    this.emit('state', cameraId, this.getState(cameraId)); // surface the change to the UI
+    const s = this.getState(cameraId);
+    if (s) this.emit('state', cameraId, s); // surface the change to the UI
   }
 
   /** Relabel a camera (the user-facing name); persists and pushes the change to the UI. */
@@ -205,7 +206,8 @@ export class CameraManager extends EventEmitter {
     if (!profile) throw new Error(`no camera with id ${cameraId}`);
     profile.name = name;
     await this.save();
-    this.emit('state', cameraId, this.getState(cameraId));
+    const s = this.getState(cameraId);
+    if (s) this.emit('state', cameraId, s);
   }
 
   /** Reorder cameras to match `orderedIds`; any ids omitted keep their current relative order. */
