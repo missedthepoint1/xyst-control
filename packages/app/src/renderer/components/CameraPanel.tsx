@@ -32,7 +32,6 @@ export function CameraPanel({ state }: { state: CameraState }) {
 
   return (
     <section className={`card panel${rec ? ' is-rec' : ''}`}>
-      <button className="panel__remove" title="Remove camera" onClick={() => window.xyst.removeCamera(id)}>×</button>
       <VideoSourceSelect current={state.video} onChange={(v) => window.xyst.setVideoSource(id, v)} />
       <VideoPanel cameraId={id} source={state.video} recording={rec} apiBase={apiBase} onFocus={(x, y) => setLastFocus({ x, y })} />
       {state.video && state.video.type !== 'none' && (
@@ -53,7 +52,10 @@ export function CameraPanel({ state }: { state: CameraState }) {
             </div>
           )}
         </div>
-        <RecButton recording={rec} onToggle={() => window.xyst.record(id, !rec)} />
+        <div className="panel__head-right">
+          <button className="panel__remove" title="Remove camera" onClick={() => window.xyst.removeCamera(id)}>×</button>
+          <RecButton recording={rec} onToggle={() => window.xyst.record(id, !rec)} />
+        </div>
       </header>
 
       <div className="controls">
