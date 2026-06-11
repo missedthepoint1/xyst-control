@@ -18,6 +18,7 @@ export function registerIpc(mgr: CameraManager, getWindow: () => BrowserWindow |
   ipcMain.handle('camera:deletePreset', (_e, id: string, presetId: string) => mgr.deletePreset(id, presetId));
   ipcMain.handle('camera:remove', (_e, id: string) => mgr.removeCamera(id));
   ipcMain.handle('camera:setVideoSource', (_e, id: string, video: unknown) => mgr.setVideoSource(id, video as never));
+  ipcMain.handle('camera:setAudioSource', (_e, id: string, audio: unknown) => mgr.setAudioSource(id, audio as never));
   ipcMain.handle('camera:setFocusPoint', (_e, id: string, x: number, y: number) => mgr.setFocusPoint(id, x, y));
   ipcMain.handle('camera:focusPoints', (_e, id: string) => mgr.listFocusPoints(id));
   ipcMain.handle('camera:saveFocusPoint', (_e, id: string, name: string, x: number, y: number) => mgr.saveFocusPoint(id, name, x, y));

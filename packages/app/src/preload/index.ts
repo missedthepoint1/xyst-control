@@ -26,6 +26,8 @@ const api = {
   removeCamera: (id: string) => ipcRenderer.invoke('camera:remove', id),
   setVideoSource: (id: string, video: { type: string; deviceId?: string }) =>
     ipcRenderer.invoke('camera:setVideoSource', id, video),
+  setAudioSource: (id: string, audio: { deviceId?: string }) =>
+    ipcRenderer.invoke('camera:setAudioSource', id, audio),
   setFocusPoint: (id: string, x: number, y: number) => ipcRenderer.invoke('camera:setFocusPoint', id, x, y),
   focusPoints: (id: string) => ipcRenderer.invoke('camera:focusPoints', id),
   saveFocusPoint: (id: string, name: string, x: number, y: number) => ipcRenderer.invoke('camera:saveFocusPoint', id, name, x, y),
