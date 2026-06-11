@@ -14,7 +14,7 @@ export function VideoPanel({ cameraId, source, recording, apiBase, name, onSelec
   const [mark, setMark] = useState<{ x: number; y: number } | null>(null);
   const [boxes, setBoxes] = useState<DetectBox[]>([]);
   const [guide, setGuide] = useState<Guide | null>(null);
-  const [showDetect, setShowDetect] = useState(true);
+  const [showOsd, setShowOsd] = useState(true);
 
   useEffect(() => {
     if (type !== 'protocol' || !apiBase) return;
@@ -29,7 +29,7 @@ export function VideoPanel({ cameraId, source, recording, apiBase, name, onSelec
   }, [type, apiBase, cameraId]);
 
   useEffect(() => {
-    if (type === 'none' || !apiBase || !showDetect) { setBoxes([]); setGuide(null); return; }
+    if (type === 'none' || !apiBase || !showOsd) { setBoxes([]); setGuide(null); return; }
     let stopped = false; let timer: ReturnType<typeof setTimeout> | undefined;
     const poll = async () => {
       try {
@@ -41,7 +41,7 @@ export function VideoPanel({ cameraId, source, recording, apiBase, name, onSelec
     };
     poll();
     return () => { stopped = true; if (timer) clearTimeout(timer); };
-  }, [type, apiBase, cameraId, showDetect]);
+  }, [type, apiBase, cameraId, showOsd]);
 
   useEffect(() => {
     if (type !== 'capture' || !source?.deviceId) return;
@@ -80,7 +80,7 @@ export function VideoPanel({ cameraId, source, recording, apiBase, name, onSelec
       {type === 'capture' && <video ref={videoRef} className="video__img" autoPlay muted playsInline />}
       {(type === 'none' || err) && <div className="video__placeholder">{type === 'none' ? 'No video source' : 'No signal'}</div>}
       {mark && <span className="video__af" style={{ left: `${mark.x}%`, top: `${mark.y}%` }} />}
-      {!onSelect && boxes.map((b, i) => (
+      {!onSelect && showOsd && boxes.map((b, i) => (
         <div key={i}
           className={`det det--${b.type}${b.track ? ' det--track' : ''}${b.main ? ' det--main' : ''}`}
           style={{
@@ -90,7 +90,7 @@ export function VideoPanel({ cameraId, source, recording, apiBase, name, onSelec
             height: `${(b.h / 10000) * 100}%`,
           }} />
       ))}
-      {!onSelect && guide?.status && (
+      {!onSelect && showOsd && guide?.status && (
         <div className={`fguide${guide.angle <= 5 ? ' fguide--ok' : ''}`}
           style={{
             left: `${(guide.x / 9999 - (guide.w / 10000) / 2) * 100}%`,
@@ -102,13 +102,13 @@ export function VideoPanel({ cameraId, source, recording, apiBase, name, onSelec
         </div>
       )}
       {!onSelect && type !== 'none' && (
-        <button type="button" className="video__detbtn" title="Toggle face detection overlay"
-          onClick={(e) => { e.stopPropagation(); setShowDetect((s) => !s); }}>
-          {showDetect ? '◉ Faces' : '○ Faces'}
+        <button type="button" className={`video__detbtn${showOsd ? ' is-on' : ''}`} title="Toggle on-screen display (face boxes, focus guide, labels)"
+          onClick={(e) => { e.stopPropagation(); setShowOsd((s) => !s); }}>
+          {showOsd ? '◉ OSD' : '○ OSD'}
         </button>
       )}
       {recording && <span className="video__tally"><span className="video__dot" /> REC</span>}
-      {name && <span className="video__name">{name}</span>}
+      {name && (onSelect || showOsd) && <span className="video__name">{name}</span>}
     </div>
   );
 }

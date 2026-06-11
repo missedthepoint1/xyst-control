@@ -34,9 +34,6 @@ export function CameraPanel({ state }: { state: CameraState }) {
     <section className={`card panel${rec ? ' is-rec' : ''}`}>
       <VideoSourceSelect current={state.video} onChange={(v) => window.xyst.setVideoSource(id, v)} />
       <VideoPanel cameraId={id} source={state.video} recording={rec} apiBase={apiBase} onFocus={(x, y) => setLastFocus({ x, y })} />
-      {state.video && state.video.type !== 'none' && (
-        <FocusPointBar cameraId={id} lastFocus={lastFocus} />
-      )}
       <header className="panel__head">
         <div>
           <div className="panel__title">{state.model ?? state.name ?? id}</div>
@@ -159,6 +156,9 @@ export function CameraPanel({ state }: { state: CameraState }) {
       )}
 
       <PresetBar cameraId={state.id} presets={presets} />
+      {state.video && state.video.type !== 'none' && (
+        <FocusPointBar cameraId={id} lastFocus={lastFocus} />
+      )}
     </section>
   );
 }
