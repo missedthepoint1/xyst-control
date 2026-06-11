@@ -20,7 +20,7 @@ export function AppShell({ children, view, onView, onRecAll, onStopAll }: {
           <button className="btn btn--ghost" onClick={onStopAll}><span className="sq" /> STOP ALL</button>
         </div>
       </header>
-      <main className="app__body">{children}</main>
+      <main className="app__body"><div className="app__grid">{children}</div></main>
     </div>
   );
 }

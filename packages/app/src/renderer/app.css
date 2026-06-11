@@ -21,10 +21,12 @@
 }
 .brand__sub { font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--faint); }
 
-.app__body {
-  min-height: 0; min-width: 0;
-  padding: 24px; overflow-y: scroll; scrollbar-gutter: stable; display: grid; gap: 20px;
-  align-content: start; align-items: start;
+/* The body is a plain block scroll viewport — block scrollers honor padding-bottom at
+   the scroll end (grid/flex scrollers drop it). The grid lives in an inner wrapper so
+   it sizes to its content (no stretch-then-clip) and its padding scrolls into view. */
+.app__body { min-height: 0; min-width: 0; overflow-y: scroll; scrollbar-gutter: stable; }
+.app__grid {
+  padding: 24px; display: grid; gap: 20px; align-content: start; align-items: start;
   grid-template-columns: repeat(auto-fill, minmax(min(380px, 100%), 1fr));
 }
 
@@ -254,7 +256,7 @@
 .fp__hint { font-size: 11.5px; color: var(--faint); }
 /* focus-point bar sits between the live view and the title — give it a clear divider
    so its chips don't crowd the camera name below */
-.presets--fp { margin-top: 12px; padding-bottom: 16px; border-bottom: 1px solid var(--border); }
+.presets--fp { margin-top: 12px; padding-bottom: 18px; margin-bottom: 18px; border-bottom: 1px solid var(--border); }
 
 /* camera-style OSD rendered on the live feed */
 .osd { position: absolute; inset: 0; pointer-events: none; z-index: 2; }
