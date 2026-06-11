@@ -2,7 +2,7 @@ import { EventEmitter } from 'node:events';
 import { readFile, writeFile } from 'node:fs/promises';
 import { randomUUID } from 'node:crypto';
 import type { CameraDriver } from './driver.js';
-import type { CameraProfile, CameraState, ControlId, ControlSettings, CameraPreset } from './types.js';
+import type { CameraProfile, CameraState, ControlId, ControlSettings, CameraPreset, FocusPoint } from './types.js';
 import { XCProtocolDriver, type XCDriverOptions } from './xc/driver.js';
 import { R5CBrowserRemoteDriver } from './r5c/driver.js';
 
@@ -111,6 +111,46 @@ export class CameraManager extends EventEmitter {
     const d = this.drivers.get(cameraId);
     if (!d?.setFocusPoint) throw new Error(`camera ${cameraId} has no focus control`);
     await d.setFocusPoint(x, y);
+  }
+
+  listFocusPoints(cameraId: string): FocusPoint[] {
+    return this.profiles.get(cameraId)?.focusPoints ?? [];
+  }
+
+  async saveFocusPoint(cameraId: string, name: string, x: number, y: number): Promise<FocusPoint> {
+    const profile = this.profiles.get(cameraId);
+    if (!profile) throw new Error(`no camera with id ${cameraId}`);
+    const point: FocusPoint = { id: randomUUID(), name, x, y };
+    profile.focusPoints = [...(profile.focusPoints ?? []), point];
+    await this.save();
+    this.emit('focusPoints', cameraId, profile.focusPoints);
+    return point;
+  }
+
+  async recallFocusPoint(cameraId: string, pointId: string): Promise<void> {
+    const p = this.listFocusPoints(cameraId).find((fp) => fp.id === pointId);
+    if (!p) throw new Error(`no focus point ${pointId} on ${cameraId}`);
+    await this.setFocusPoint(cameraId, p.x, p.y);
+  }
+
+  async recallFocusPointById(pointId: string): Promise<void> {
+    for (const [cameraId, profile] of this.profiles) {
+      if ((profile.focusPoints ?? []).some((fp) => fp.id === pointId)) {
+        return this.recallFocusPoint(cameraId, pointId);
+      }
+    }
+    throw new Error(`no focus point with id ${pointId}`);
+  }
+
+  async deleteFocusPoint(cameraId: string, pointId: string): Promise<void> {
+    const profile = this.profiles.get(cameraId);
+    if (!profile) throw new Error(`no camera with id ${cameraId}`);
+    const before = profile.focusPoints ?? [];
+    const after = before.filter((fp) => fp.id !== pointId);
+    if (after.length === before.length) return;
+    profile.focusPoints = after;
+    await this.save();
+    this.emit('focusPoints', cameraId, profile.focusPoints);
   }
 
   async getPreview(cameraId: string): Promise<import('./types.js').PreviewFrame | undefined> {

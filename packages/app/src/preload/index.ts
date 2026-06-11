@@ -27,6 +27,15 @@ const api = {
   setVideoSource: (id: string, video: { type: string; deviceId?: string }) =>
     ipcRenderer.invoke('camera:setVideoSource', id, video),
   setFocusPoint: (id: string, x: number, y: number) => ipcRenderer.invoke('camera:setFocusPoint', id, x, y),
+  focusPoints: (id: string) => ipcRenderer.invoke('camera:focusPoints', id),
+  saveFocusPoint: (id: string, name: string, x: number, y: number) => ipcRenderer.invoke('camera:saveFocusPoint', id, name, x, y),
+  recallFocusPoint: (id: string, pointId: string) => ipcRenderer.invoke('camera:recallFocusPoint', id, pointId),
+  deleteFocusPoint: (id: string, pointId: string) => ipcRenderer.invoke('camera:deleteFocusPoint', id, pointId),
+  onFocusPoints: (cb: (id: string, pts: unknown) => void) => {
+    const h = (_e: unknown, id: string, pts: unknown) => cb(id, pts);
+    ipcRenderer.on('camera:focusPoints', h);
+    return () => ipcRenderer.off('camera:focusPoints', h);
+  },
   getApiBase: () => ipcRenderer.invoke('app:apiBase') as Promise<string>,
   onRemoved: (cb: (id: string) => void) => {
     const h = (_e: unknown, id: string) => cb(id);

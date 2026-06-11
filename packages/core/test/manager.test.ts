@@ -250,4 +250,22 @@ describe('CameraManager', () => {
     expect(meta?.detect).toHaveLength(1);
     expect(meta?.detect[0]).toMatchObject({ type: 'face', x: 5000, y: 4000, w: 1200, h: 1800, main: true, track: true });
   });
+
+  it('saves, recalls and deletes focus points', async () => {
+    cam = new FakeCamera();
+    const host = await cam.listen();
+    const file = configWith(host);
+    mgr = new CameraManager(file, { pollMs: 50 });
+    await mgr.load();
+    await mgr.connect('cam-1');
+    const p = await mgr.saveFocusPoint('cam-1', 'Podium', 0.25, 0.75);
+    expect(p.name).toBe('Podium');
+    expect(mgr.getState('cam-1')?.focusPoints).toHaveLength(1);
+    await mgr.recallFocusPoint('cam-1', p.id);
+    expect(cam.controlLog.at(-1)).toContain('c.1.focus.frame.1.x=2500'); // round(0.25*9999)=2500
+    await mgr.deleteFocusPoint('cam-1', p.id);
+    expect(mgr.listFocusPoints('cam-1')).toHaveLength(0);
+    const saved = JSON.parse(readFileSync(file, 'utf8'));
+    expect(saved.cameras[0].focusPoints ?? []).toHaveLength(0);
+  });
 });

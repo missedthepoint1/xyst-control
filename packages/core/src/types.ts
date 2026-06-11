@@ -54,6 +54,7 @@ export interface CameraState extends CameraSnapshot {
   updatedAt: number;
   lastError?: string;
   video?: VideoSource;
+  focusPoints?: FocusPoint[];
 }
 
 export interface CameraAuth {
@@ -74,6 +75,7 @@ export interface CameraProfile {
   host: string;
   auth?: CameraAuth;
   presets?: CameraPreset[];
+  focusPoints?: FocusPoint[];
   video?: VideoSource;
 }
 
@@ -113,4 +115,12 @@ export interface CameraPreset {
   settings: ControlSettings;
   /** Exposure mode captured at save time (usually 'manual'). */
   exposureMode?: string;
+}
+
+/** A named AF position stored per-camera (normalized 0..1 x/y). */
+export interface FocusPoint {
+  id: string;
+  name: string;
+  x: number;
+  y: number;
 }

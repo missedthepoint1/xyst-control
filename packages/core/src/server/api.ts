@@ -64,6 +64,19 @@ export function createApiServer(mgr: CameraManager, _opts: ApiServerOptions = {}
     return ok();
   });
 
+  router.add('GET', '/api/cameras/:id/focus-points', ({ params }) => mgr.listFocusPoints(params.id!));
+  router.add('POST', '/api/cameras/:id/focus-points', ({ params, body }) => {
+    const b = body as { name?: string; x?: number; y?: number };
+    if (!b?.name || typeof b.x !== 'number' || typeof b.y !== 'number') throw new HttpError(400, 'body.name, x, y required');
+    return mgr.saveFocusPoint(params.id!, b.name, b.x, b.y);
+  });
+  router.add('POST', '/api/cameras/:id/focus-points/:pointId/recall', ({ params }) =>
+    mgr.recallFocusPoint(params.id!, params.pointId!).then(ok));
+  router.add('POST', '/api/focus-points/:pointId/recall', ({ params }) =>
+    mgr.recallFocusPointById(params.pointId!).then(ok));
+  router.add('DELETE', '/api/cameras/:id/focus-points/:pointId', ({ params }) =>
+    mgr.deleteFocusPoint(params.id!, params.pointId!).then(ok));
+
   router.add('GET', '/api/cameras/:id/meta', ({ params }) =>
     mgr.getMeta(params.id!).then((m) => m ?? { detect: [] }));
 
@@ -85,15 +98,18 @@ export function createApiServer(mgr: CameraManager, _opts: ApiServerOptions = {}
     const onState = (id: string, s: unknown) => sse(res, 'state', { cameraId: id, state: s });
     const onStatus = (id: string, st: unknown) => sse(res, 'status', { cameraId: id, status: st });
     const onPresets = (id: string, p: unknown) => sse(res, 'presets', { cameraId: id, presets: p });
+    const onFocusPoints = (id: string, pts: unknown) => sse(res, 'focusPoints', { cameraId: id, focusPoints: pts });
     mgr.on('state', onState);
     mgr.on('status', onStatus);
     mgr.on('presets', onPresets);
+    mgr.on('focusPoints', onFocusPoints);
     const keepAlive = setInterval(() => { if (!res.writableEnded) res.write(': ping\n\n'); }, 15000);
     req.on('close', () => {
       clearInterval(keepAlive);
       mgr.off('state', onState);
       mgr.off('status', onStatus);
       mgr.off('presets', onPresets);
+      mgr.off('focusPoints', onFocusPoints);
     });
     return undefined; // streaming response managed here; handle() must not double-send
   });

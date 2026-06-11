@@ -54,6 +54,7 @@ export class XCProtocolDriver extends EventEmitter implements CameraDriver {
       updatedAt: this.snapshotAt,
       lastError: this.lastError,
       video: this.profile.video,
+      focusPoints: this.profile.focusPoints,
       ...this.snapshot,
     };
   }

@@ -19,6 +19,10 @@ export function registerIpc(mgr: CameraManager, getWindow: () => BrowserWindow |
   ipcMain.handle('camera:remove', (_e, id: string) => mgr.removeCamera(id));
   ipcMain.handle('camera:setVideoSource', (_e, id: string, video: unknown) => mgr.setVideoSource(id, video as never));
   ipcMain.handle('camera:setFocusPoint', (_e, id: string, x: number, y: number) => mgr.setFocusPoint(id, x, y));
+  ipcMain.handle('camera:focusPoints', (_e, id: string) => mgr.listFocusPoints(id));
+  ipcMain.handle('camera:saveFocusPoint', (_e, id: string, name: string, x: number, y: number) => mgr.saveFocusPoint(id, name, x, y));
+  ipcMain.handle('camera:recallFocusPoint', (_e, id: string, pointId: string) => mgr.recallFocusPoint(id, pointId));
+  ipcMain.handle('camera:deleteFocusPoint', (_e, id: string, pointId: string) => mgr.deleteFocusPoint(id, pointId));
 
   const push = (id: string, state: unknown) =>
     getWindow()?.webContents.send('camera:state', id, state);
@@ -26,5 +30,7 @@ export function registerIpc(mgr: CameraManager, getWindow: () => BrowserWindow |
   mgr.on('status', (id) => push(id, mgr.getState(id)));
   mgr.on('presets', (id: string, presets: unknown) =>
     getWindow()?.webContents.send('camera:presets', id, presets));
+  mgr.on('focusPoints', (id: string, pts: unknown) =>
+    getWindow()?.webContents.send('camera:focusPoints', id, pts));
   mgr.on('removed', (id: string) => getWindow()?.webContents.send('camera:removed', id));
 }
