@@ -79,6 +79,7 @@ export function VideoPanel({ cameraId, source, recording, apiBase, name, osd, on
   if (type === 'none' && !onSelect) return null;
 
   return (
+    <>
     <div className={`video${recording ? ' video--rec' : ''}${onSelect ? ' video--tile' : ''}`} onClick={tap}>
       {type === 'protocol' && <img ref={imgRef} className="video__img" alt="" />}
       {type === 'capture' && <video ref={videoRef} className="video__img" autoPlay muted playsInline />}
@@ -118,14 +119,16 @@ export function VideoPanel({ cameraId, source, recording, apiBase, name, osd, on
           </div>
         </div>
       )}
-      {!onSelect && type !== 'none' && (
-        <button type="button" className={`video__detbtn${showDetect ? ' is-on' : ''}`} title="Toggle on-screen display (camera info, face/eye boxes, focus guide)"
-          onClick={(e) => { e.stopPropagation(); setShowDetect((s) => !s); }}>
-          {showDetect ? '◉ OSD' : '○ OSD'}
-        </button>
-      )}
       {recording && (onSelect || !osd || !showDetect) && <span className="video__tally"><span className="video__dot" /> REC</span>}
       {name && (onSelect || showDetect) && <span className="video__name">{name}</span>}
     </div>
+    {!onSelect && type !== 'none' && (
+      <button type="button" className={`osd-toggle${showDetect ? ' is-on' : ''}`}
+        title="Show camera info, face/eye boxes and focus guide on the live view"
+        onClick={() => setShowDetect((s) => !s)}>
+        <span className="osd-toggle__dot" /> OSD {showDetect ? 'on' : 'off'}
+      </button>
+    )}
+    </>
   );
 }
