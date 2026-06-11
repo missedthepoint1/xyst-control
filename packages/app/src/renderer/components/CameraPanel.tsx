@@ -30,10 +30,32 @@ export function CameraPanel({ state }: { state: CameraState }) {
   const [lastFocus, setLastFocus] = useState<{ x: number; y: number } | null>(null);
   const apiBase = useApiBase();
 
+  // Camera-style OSD info rendered ON the live feed (built from discovered state).
+  const n = (v: unknown) => (typeof v === 'number' ? v : undefined);
+  const wbLabels: Record<string, string> = { auto: 'AWB', manual: 'WB Set', wb_a: 'WB A', wb_b: 'WB B', daylight: 'Daylight', tungsten: 'Tungsten', kelvin: 'Kelvin' };
+  const osd = {
+    iso: c.iso?.value != null ? `ISO ${c.iso.value}`
+       : n(c.gain?.value) != null ? `${(n(c.gain!.value)! / 10).toFixed(1)}dB` : undefined,
+    shutter: c.shutter?.available
+      ? (c.shutter.mode === 'angle' && n(c.shutterAngle?.value) != null
+          ? `${Math.round(n(c.shutterAngle!.value)! / 100)}°`
+          : c.shutter.value != null ? `1/${c.shutter.value}` : undefined)
+      : undefined,
+    iris: n(c.iris?.value) != null ? `f/${(n(c.iris!.value)! / 100).toFixed(1)}` : undefined,
+    wb: c.wb?.value === 'kelvin'
+      ? (n(c.wbKelvin?.value) != null ? `${c.wbKelvin!.value}K` : 'Kelvin')
+      : typeof c.wb?.value === 'string' ? (wbLabels[c.wb.value] ?? c.wb.value) : undefined,
+    nd: n(c.nd?.value) != null ? (n(c.nd!.value)! > 0 ? `ND ${+(Math.log2(n(c.nd!.value)! / 100)).toFixed(1)}` : 'ND Off') : undefined,
+    rec,
+    remaining: state.record.remainingMinutes,
+    battery: state.power?.percent != null ? `${state.power.percent}%`
+           : state.power?.volt != null ? `${state.power.volt}V` : undefined,
+  };
+
   return (
     <section className={`card panel${rec ? ' is-rec' : ''}`}>
       <VideoSourceSelect current={state.video} onChange={(v) => window.xyst.setVideoSource(id, v)} />
-      <VideoPanel cameraId={id} source={state.video} recording={rec} apiBase={apiBase} onFocus={(x, y) => setLastFocus({ x, y })} />
+      <VideoPanel cameraId={id} source={state.video} recording={rec} apiBase={apiBase} osd={osd} onFocus={(x, y) => setLastFocus({ x, y })} />
       {state.video && state.video.type !== 'none' && (
         <FocusPointBar cameraId={id} lastFocus={lastFocus} />
       )}
@@ -91,19 +113,12 @@ export function CameraPanel({ state }: { state: CameraState }) {
         )}
       </div>
 
-      {(c.focus?.available || c.faceDetect?.available || c.colorbar?.available || c.focusAction?.available || c.osdOutput?.available) && (
+      {(c.focus?.available || c.faceDetect?.available || c.colorbar?.available || c.focusAction?.available) && (
         <div className="switches">
           {c.focus?.available && (
             <ControlSegment label="Focus" value={c.focus.value}
               options={segOpts(c.focus, { auto: 'AF', manual: 'MF' })}
               onChange={(v) => set('focus', v)} />
-          )}
-          {c.osdOutput?.available && (
-            <ControlSegment label="Camera OSD" value={c.osdOutput.value === 'off' ? 'off' : 'on'}
-              options={[{ value: 'off', label: 'Off' }, { value: 'on', label: 'On' }]}
-              onChange={(v) => set('osdOutput', v === 'on'
-                ? (c.osdOutput!.list?.find((o) => o !== 'off') ?? 'displevel1_2')
-                : 'off')} />
           )}
           {c.faceDetect?.available && (
             <ControlSegment label="Face" value={c.faceDetect.value}

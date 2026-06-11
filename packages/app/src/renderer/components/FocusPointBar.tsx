@@ -18,7 +18,7 @@ export function FocusPointBar({ cameraId, lastFocus }: {
   };
 
   return (
-    <div className="presets">
+    <div className="presets presets--fp">
       <div className="fp__hint">Tap the preview to pull focus, then save that point</div>
       <div className="presets__row">
         <input className="input" value={name} onChange={(e) => setName(e.target.value)} placeholder="Focus point name" />

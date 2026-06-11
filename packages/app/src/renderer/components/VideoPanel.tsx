@@ -2,10 +2,14 @@ import { useEffect, useRef, useState } from 'react';
 import type { VideoSource } from '@xyst/core';
 type DetectBox = { type: 'face' | 'eye' | 'object'; x: number; y: number; w: number; h: number; main: boolean; track: boolean };
 type Guide = { status: boolean; level: number; angle: number; dir: string; x: number; y: number; w: number; h: number };
+export type OsdInfo = {
+  iso?: string; shutter?: string; iris?: string; wb?: string; nd?: string;
+  rec: boolean; remaining?: number; battery?: string;
+};
 
-export function VideoPanel({ cameraId, source, recording, apiBase, name, onSelect, onFocus }: {
+export function VideoPanel({ cameraId, source, recording, apiBase, name, osd, onSelect, onFocus }: {
   cameraId: string; source?: VideoSource; recording: boolean; apiBase: string;
-  name?: string; onSelect?: () => void; onFocus?: (x: number, y: number) => void;
+  name?: string; osd?: OsdInfo; onSelect?: () => void; onFocus?: (x: number, y: number) => void;
 }) {
   const type = source?.type ?? 'none';
   const imgRef = useRef<HTMLImageElement>(null);
@@ -101,13 +105,26 @@ export function VideoPanel({ cameraId, source, recording, apiBase, name, onSelec
           <span className="fguide__dir">{guide.angle <= 5 ? '● focus' : guide.dir === 'front' ? '◂ front ▸' : '▸ back ◂'}</span>
         </div>
       )}
+      {!onSelect && showDetect && osd && (
+        <div className="osd">
+          {osd.rec && <span className="osd__rec"><span className="osd__dot" /> REC{osd.remaining != null ? ` · ${osd.remaining}m` : ''}</span>}
+          {osd.battery && <span className="osd__batt">{osd.battery}</span>}
+          <div className="osd__bar">
+            {osd.iso && <span>{osd.iso}</span>}
+            {osd.shutter && <span>{osd.shutter}</span>}
+            {osd.iris && <span>{osd.iris}</span>}
+            {osd.wb && <span>{osd.wb}</span>}
+            {osd.nd && <span>{osd.nd}</span>}
+          </div>
+        </div>
+      )}
       {!onSelect && type !== 'none' && (
-        <button type="button" className={`video__detbtn${showDetect ? ' is-on' : ''}`} title="Toggle app overlays (face/eye boxes, focus guide)"
+        <button type="button" className={`video__detbtn${showDetect ? ' is-on' : ''}`} title="Toggle on-screen display (camera info, face/eye boxes, focus guide)"
           onClick={(e) => { e.stopPropagation(); setShowDetect((s) => !s); }}>
-          {showDetect ? '◉ Faces' : '○ Faces'}
+          {showDetect ? '◉ OSD' : '○ OSD'}
         </button>
       )}
-      {recording && <span className="video__tally"><span className="video__dot" /> REC</span>}
+      {recording && (onSelect || !osd || !showDetect) && <span className="video__tally"><span className="video__dot" /> REC</span>}
       {name && (onSelect || showDetect) && <span className="video__name">{name}</span>}
     </div>
   );
