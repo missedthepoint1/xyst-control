@@ -23,7 +23,8 @@
 
 .app__body {
   min-height: 0; min-width: 0;
-  padding: 24px; overflow-y: scroll; scrollbar-gutter: stable; display: grid; gap: 20px; align-content: start;
+  padding: 24px; overflow-y: scroll; scrollbar-gutter: stable; display: grid; gap: 20px;
+  align-content: start; align-items: start;
   grid-template-columns: repeat(auto-fill, minmax(min(380px, 100%), 1fr));
 }
 
@@ -217,7 +218,7 @@
 .video__name { position: absolute; bottom: 10px; left: 10px; background: rgba(0,0,0,0.55); color: #fff;
   font-size: 12px; font-weight: 600; padding: 3px 9px; border-radius: 6px; backdrop-filter: blur(6px); }
 /* multiview grid */
-.multiview { display: grid; gap: 16px; grid-template-columns: repeat(auto-fill, minmax(min(440px, 100%), 1fr)); align-content: start; }
+.multiview { display: grid; gap: 16px; grid-template-columns: repeat(auto-fill, minmax(min(440px, 100%), 1fr)); align-content: start; align-items: start; }
 .multiview__empty { color: var(--muted); padding: 40px; text-align: center; }
 .video--tile:hover { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent), 0 0 24px var(--accent-glow); }
 /* single-camera view */
