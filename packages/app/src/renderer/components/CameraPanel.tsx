@@ -56,7 +56,7 @@ export function CameraPanel({ state }: { state: CameraState }) {
 
   return (
     <section className={`card panel${rec ? ' is-rec' : ''}`}>
-      <VideoSourceSelect current={state.video} onChange={(v) => window.xyst.setVideoSource(id, v)} />
+      <VideoSourceSelect current={state.video} name={state.model ?? state.name ?? id} onChange={(v) => window.xyst.setVideoSource(id, v)} />
       <VideoPanel cameraId={id} source={state.video} recording={rec} apiBase={apiBase} osd={osd} showOsd={showOsd} onFocus={(x, y) => setLastFocus({ x, y })} />
       {state.video && state.video.type !== 'none' && (
         <FocusPointBar cameraId={id} lastFocus={lastFocus} />

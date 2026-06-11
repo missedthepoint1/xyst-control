@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
 import type { VideoSource } from '@xyst/core';
 
-export function VideoSourceSelect({ current, onChange }: {
-  current?: VideoSource; onChange: (v: VideoSource) => void;
+export function VideoSourceSelect({ current, onChange, name }: {
+  current?: VideoSource; onChange: (v: VideoSource) => void; name?: string;
 }) {
   const [devices, setDevices] = useState<MediaDeviceInfo[]>([]);
   useEffect(() => {
@@ -19,9 +19,9 @@ export function VideoSourceSelect({ current, onChange }: {
       else onChange({ type: 'none' });
     }}>
       <option value="none">No video</option>
-      <option value="protocol">Camera preview (JPEG)</option>
+      <option value="protocol">{name ? `${name} — Live view` : 'Live view'}</option>
       {devices.map((d, i) => (
-        <option key={d.deviceId} value={`capture:${d.deviceId}`}>{d.label || `Capture device ${i + 1}`}</option>
+        <option key={d.deviceId} value={`capture:${d.deviceId}`}>{`${d.label || `Capture device ${i + 1}`} (SDI/HDMI · high-res)`}</option>
       ))}
     </select>
   );
