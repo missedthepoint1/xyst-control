@@ -1,11 +1,26 @@
-import { app, BrowserWindow, ipcMain, session } from 'electron';
+import { app, BrowserWindow, Menu, ipcMain, session } from 'electron';
 import { join } from 'node:path';
 import { CameraManager, createApiServer } from '@xyst/core';
 import { resolveConfigPath } from './config-path.js';
 import { registerIpc } from './ipc.js';
 import { resolveApiPort } from './api-port.js';
 
+// Name the app so the macOS menu bar reads "XYST CONTROL" instead of "Electron"
+// (in dev the binary is Electron; setName + the appMenu role override it).
+app.setName('XYST CONTROL');
+
 let win: BrowserWindow | null = null;
+
+function installMenu(): void {
+  const isMac = process.platform === 'darwin';
+  Menu.setApplicationMenu(Menu.buildFromTemplate([
+    ...(isMac ? [{ role: 'appMenu' as const }] : []),
+    { role: 'fileMenu' },
+    { role: 'editMenu' },
+    { role: 'viewMenu' },
+    { role: 'windowMenu' },
+  ]));
+}
 
 async function createWindow(): Promise<void> {
   win = new BrowserWindow({
@@ -26,6 +41,12 @@ app.whenReady().then(async () => {
   const api = createApiServer(mgr);
   api.listen(apiPort, '127.0.0.1', () => console.log(`XYST API on http://127.0.0.1:${apiPort}`));
   ipcMain.handle('app:apiBase', () => `http://127.0.0.1:${apiPort}`);
+  installMenu();
+  // In dev the dock shows Electron's icon (packaged apps use the .icns automatically) —
+  // set it from the build PNG so the dev runtime also shows the XYST lens.
+  if (process.platform === 'darwin' && process.env.ELECTRON_RENDERER_URL) {
+    app.dock?.setIcon(join(import.meta.dirname, '../../build/icon.png'));
+  }
   await createWindow();
   await mgr.connectAll().catch(() => {});
 });

@@ -1,24 +1,45 @@
 <svg width="1024" height="1024" viewBox="0 0 1024 1024" fill="none" xmlns="http://www.w3.org/2000/svg">
   <defs>
     <linearGradient id="bg" x1="512" y1="100" x2="512" y2="924" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#17141f"/>
-      <stop offset="1" stop-color="#0a0911"/>
+      <stop stop-color="#17141f"/><stop offset="1" stop-color="#0a0911"/>
     </linearGradient>
-    <linearGradient id="x" x1="360" y1="360" x2="664" y2="664" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#8b7bff"/>
-      <stop offset="0.5" stop-color="#c46bff"/>
-      <stop offset="1" stop-color="#36d6e7"/>
+    <linearGradient id="barrel" x1="300" y1="250" x2="730" y2="780" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#403a58"/><stop offset="0.5" stop-color="#13111b"/><stop offset="1" stop-color="#2b2842"/>
     </linearGradient>
-    <radialGradient id="glow" cx="512" cy="424" r="330" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#8b7bff" stop-opacity="0.5"/>
-      <stop offset="1" stop-color="#8b7bff" stop-opacity="0"/>
+    <radialGradient id="glass" cx="512" cy="512" r="296" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#050509"/><stop offset="0.55" stop-color="#0a0a14"/><stop offset="1" stop-color="#1c1636"/>
     </radialGradient>
+    <linearGradient id="coat" x1="300" y1="300" x2="724" y2="724" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#8b7bff"/><stop offset="0.5" stop-color="#c46bff"/><stop offset="1" stop-color="#36d6e7"/>
+    </linearGradient>
+    <radialGradient id="core" cx="478" cy="466" r="210" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#36d6e7" stop-opacity="0.6"/><stop offset="1" stop-color="#36d6e7" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="spec" cx="408" cy="384" r="200" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.9"/>
+      <stop offset="0.55" stop-color="#ffffff" stop-opacity="0.12"/>
+      <stop offset="1" stop-color="#ffffff" stop-opacity="0"/>
+    </radialGradient>
+    <clipPath id="g"><circle cx="512" cy="512" r="286"/></clipPath>
   </defs>
+
   <rect x="100" y="100" width="824" height="824" rx="186" fill="url(#bg)"/>
-  <rect x="100" y="100" width="824" height="824" rx="186" fill="url(#glow)"/>
-  <g stroke="url(#x)" stroke-width="90" stroke-linecap="round">
-    <path d="M344 344 L680 680"/>
-    <path d="M680 344 L344 680"/>
+
+  <!-- lens barrel -->
+  <circle cx="512" cy="512" r="332" fill="url(#barrel)"/>
+  <circle cx="512" cy="512" r="332" fill="none" stroke="#ffffff" stroke-opacity="0.10" stroke-width="3"/>
+  <circle cx="512" cy="512" r="301" fill="none" stroke="#000000" stroke-opacity="0.55" stroke-width="7"/>
+
+  <!-- glass + reflections -->
+  <circle cx="512" cy="512" r="286" fill="url(#glass)"/>
+  <g clip-path="url(#g)">
+    <rect x="226" y="226" width="572" height="572" fill="url(#coat)" opacity="0.45"/>
+    <circle cx="478" cy="466" r="220" fill="url(#core)"/>
+    <circle cx="512" cy="512" r="150" fill="none" stroke="#ffffff" stroke-opacity="0.16" stroke-width="4"/>
+    <ellipse cx="432" cy="404" rx="158" ry="104" transform="rotate(-35 432 404)" fill="url(#spec)"/>
+    <circle cx="620" cy="648" r="26" fill="#ffffff" opacity="0.45"/>
   </g>
+  <circle cx="512" cy="512" r="286" fill="none" stroke="#ffffff" stroke-opacity="0.12" stroke-width="2"/>
+
   <rect x="101.5" y="101.5" width="821" height="821" rx="184.5" stroke="#ffffff" stroke-opacity="0.07" stroke-width="3"/>
 </svg>
