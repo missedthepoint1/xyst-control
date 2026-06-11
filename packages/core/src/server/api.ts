@@ -57,6 +57,13 @@ export function createApiServer(mgr: CameraManager, _opts: ApiServerOptions = {}
     mgr.deletePreset(params.id!, params.presetId!).then(ok));
   router.add('DELETE', '/api/cameras/:id', ({ params }) => mgr.removeCamera(params.id!).then(ok));
 
+  router.add('GET', '/api/cameras/:id/preview.jpg', async ({ params, res }) => {
+    const frame = await mgr.getPreview(params.id!);
+    if (!frame) { res.writeHead(502, { 'content-type': 'application/json' }); res.end(JSON.stringify({ error: 'no preview' })); return; }
+    res.writeHead(200, { 'content-type': frame.contentType, 'cache-control': 'no-store', 'access-control-allow-origin': '*' });
+    res.end(Buffer.from(frame.data));
+  });
+
   router.add('GET', '/api/events', ({ req, res }) => {
     res.writeHead(200, {
       'content-type': 'text/event-stream',

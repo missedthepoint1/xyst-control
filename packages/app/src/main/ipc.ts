@@ -17,6 +17,7 @@ export function registerIpc(mgr: CameraManager, getWindow: () => BrowserWindow |
   ipcMain.handle('camera:recallPreset', (_e, id: string, presetId: string) => mgr.recallPreset(id, presetId));
   ipcMain.handle('camera:deletePreset', (_e, id: string, presetId: string) => mgr.deletePreset(id, presetId));
   ipcMain.handle('camera:remove', (_e, id: string) => mgr.removeCamera(id));
+  ipcMain.handle('camera:setVideoSource', (_e, id: string, video: unknown) => mgr.setVideoSource(id, video as never));
 
   const push = (id: string, state: unknown) =>
     getWindow()?.webContents.send('camera:state', id, state);

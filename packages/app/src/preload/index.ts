@@ -24,6 +24,9 @@ const api = {
     return () => ipcRenderer.off('camera:presets', h);
   },
   removeCamera: (id: string) => ipcRenderer.invoke('camera:remove', id),
+  setVideoSource: (id: string, video: { type: string; deviceId?: string }) =>
+    ipcRenderer.invoke('camera:setVideoSource', id, video),
+  getApiBase: () => ipcRenderer.invoke('app:apiBase') as Promise<string>,
   onRemoved: (cb: (id: string) => void) => {
     const h = (_e: unknown, id: string) => cb(id);
     ipcRenderer.on('camera:removed', h);

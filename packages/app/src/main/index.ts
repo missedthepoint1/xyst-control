@@ -1,4 +1,4 @@
-import { app, BrowserWindow } from 'electron';
+import { app, BrowserWindow, ipcMain } from 'electron';
 import { join } from 'node:path';
 import { CameraManager, createApiServer } from '@xyst/core';
 import { resolveConfigPath } from './config-path.js';
@@ -23,6 +23,7 @@ app.whenReady().then(async () => {
   const apiPort = resolveApiPort();
   const api = createApiServer(mgr);
   api.listen(apiPort, '127.0.0.1', () => console.log(`XYST API on http://127.0.0.1:${apiPort}`));
+  ipcMain.handle('app:apiBase', () => `http://127.0.0.1:${apiPort}`);
   await createWindow();
   await mgr.connectAll().catch(() => {});
 });

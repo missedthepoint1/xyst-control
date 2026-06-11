@@ -12,6 +12,9 @@ import { RangeStepper } from './controls/RangeStepper.js';
 import { FocusActions } from './controls/FocusActions.js';
 import { usePresets } from '../hooks/usePresets.js';
 import { PresetBar } from './PresetBar.js';
+import { VideoPanel } from './VideoPanel.js';
+import { VideoSourceSelect } from './VideoSourceSelect.js';
+import { useApiBase } from '../hooks/useApiBase.js';
 
 export function CameraPanel({ state }: { state: CameraState }) {
   const id = state.id;
@@ -23,10 +26,13 @@ export function CameraPanel({ state }: { state: CameraState }) {
   const { presets } = usePresets(state.id);
   const rec = state.record.recording;
   const [advanced, setAdvanced] = useState(false);
+  const apiBase = useApiBase();
 
   return (
     <section className={`card panel${rec ? ' is-rec' : ''}`}>
       <button className="panel__remove" title="Remove camera" onClick={() => window.xyst.removeCamera(id)}>×</button>
+      <VideoSourceSelect current={state.video} onChange={(v) => window.xyst.setVideoSource(id, v)} />
+      <VideoPanel cameraId={id} source={state.video} recording={rec} apiBase={apiBase} />
       <header className="panel__head">
         <div>
           <div className="panel__title">{state.model ?? state.name ?? id}</div>
