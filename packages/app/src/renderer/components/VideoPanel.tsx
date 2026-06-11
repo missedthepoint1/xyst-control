@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
 import type { VideoSource } from '@xyst/core';
 type DetectBox = { type: 'face' | 'eye' | 'object'; x: number; y: number; w: number; h: number; main: boolean; track: boolean };
+type Guide = { status: boolean; level: number; angle: number; dir: string; x: number; y: number; w: number; h: number };
 
-export function VideoPanel({ cameraId, source, recording, apiBase, name, onSelect }: {
+export function VideoPanel({ cameraId, source, recording, apiBase, name, onSelect, onFocus }: {
   cameraId: string; source?: VideoSource; recording: boolean; apiBase: string;
-  name?: string; onSelect?: () => void;
+  name?: string; onSelect?: () => void; onFocus?: (x: number, y: number) => void;
 }) {
   const type = source?.type ?? 'none';
   const imgRef = useRef<HTMLImageElement>(null);
@@ -12,6 +13,7 @@ export function VideoPanel({ cameraId, source, recording, apiBase, name, onSelec
   const [err, setErr] = useState(false);
   const [mark, setMark] = useState<{ x: number; y: number } | null>(null);
   const [boxes, setBoxes] = useState<DetectBox[]>([]);
+  const [guide, setGuide] = useState<Guide | null>(null);
   const [showDetect, setShowDetect] = useState(true);
 
   useEffect(() => {
@@ -27,13 +29,14 @@ export function VideoPanel({ cameraId, source, recording, apiBase, name, onSelec
   }, [type, apiBase, cameraId]);
 
   useEffect(() => {
-    if (type === 'none' || !apiBase || !showDetect) { setBoxes([]); return; }
+    if (type === 'none' || !apiBase || !showDetect) { setBoxes([]); setGuide(null); return; }
     let stopped = false; let timer: ReturnType<typeof setTimeout> | undefined;
     const poll = async () => {
       try {
         const r = await fetch(`${apiBase}/api/cameras/${cameraId}/meta?t=${Date.now()}`);
-        if (r.ok) { const m = await r.json() as { detect?: DetectBox[] }; if (!stopped) setBoxes(m.detect ?? []); }
-      } catch { if (!stopped) setBoxes([]); }
+        if (r.ok) { const m = await r.json() as { detect?: DetectBox[]; fguide?: Guide }; if (!stopped) { setBoxes(m.detect ?? []); setGuide(m.fguide ?? null); } }
+        else { if (!stopped) { setBoxes([]); setGuide(null); } }
+      } catch { if (!stopped) { setBoxes([]); setGuide(null); } }
       if (!stopped) timer = setTimeout(poll, 150);
     };
     poll();
@@ -64,6 +67,7 @@ export function VideoPanel({ cameraId, source, recording, apiBase, name, onSelec
     if (px < 0 || py < 0 || px > dispW || py > dispH) return; // outside the active image
     const nx = px / dispW, ny = py / dispH;
     void window.xyst.setFocusPoint(cameraId, nx, ny);
+    onFocus?.(nx, ny);
     setMark({ x: ((offX + px) / rect.width) * 100, y: ((offY + py) / rect.height) * 100 });
     setTimeout(() => setMark(null), 1500);
   };
@@ -86,6 +90,17 @@ export function VideoPanel({ cameraId, source, recording, apiBase, name, onSelec
             height: `${(b.h / 10000) * 100}%`,
           }} />
       ))}
+      {!onSelect && guide?.status && (
+        <div className={`fguide${guide.angle <= 5 ? ' fguide--ok' : ''}`}
+          style={{
+            left: `${(guide.x / 9999 - (guide.w / 10000) / 2) * 100}%`,
+            top: `${(guide.y / 9999 - (guide.h / 10000) / 2) * 100}%`,
+            width: `${(guide.w / 10000) * 100}%`,
+            height: `${(guide.h / 10000) * 100}%`,
+          }}>
+          <span className="fguide__dir">{guide.angle <= 5 ? '● focus' : guide.dir === 'front' ? '◂ front ▸' : '▸ back ◂'}</span>
+        </div>
+      )}
       {!onSelect && type !== 'none' && (
         <button type="button" className="video__detbtn" title="Toggle face detection overlay"
           onClick={(e) => { e.stopPropagation(); setShowDetect((s) => !s); }}>

@@ -231,3 +231,12 @@
   color: var(--text); background: rgba(0,0,0,0.5); border: 1px solid var(--border); border-radius: 7px;
   padding: 4px 9px; backdrop-filter: blur(6px); transition: border-color .15s; }
 .video__detbtn:hover { border-color: var(--accent); }
+/* MF focus guide */
+.fguide { position: absolute; border: 2px solid #ffce5a; border-radius: 6px; pointer-events: none;
+  box-shadow: 0 0 12px rgba(255,206,90,0.5); display: grid; place-items: end center; transition: all .1s linear; }
+.fguide--ok { border-color: #34e0a1; box-shadow: 0 0 14px rgba(52,224,161,0.7); }
+.fguide__dir { transform: translateY(120%); font-size: 11px; font-weight: 700; color: #ffce5a;
+  background: rgba(0,0,0,0.5); padding: 1px 7px; border-radius: 5px; white-space: nowrap; }
+.fguide--ok .fguide__dir { color: #34e0a1; }
+/* focus point hint */
+.fp__hint { font-size: 11.5px; color: var(--faint); }
