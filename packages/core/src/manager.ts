@@ -118,6 +118,11 @@ export class CameraManager extends EventEmitter {
     return d?.getPreview ? d.getPreview() : undefined;
   }
 
+  async getMeta(cameraId: string): Promise<import('./types.js').CameraMeta | undefined> {
+    const d = this.drivers.get(cameraId);
+    return d?.getMeta ? d.getMeta() : undefined;
+  }
+
   async setVideoSource(cameraId: string, video: import('./types.js').VideoSource): Promise<void> {
     const profile = this.profiles.get(cameraId);
     if (!profile) throw new Error(`no camera with id ${cameraId}`);

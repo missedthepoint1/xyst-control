@@ -2,6 +2,7 @@ import { createServer, type Server, type ServerResponse } from 'node:http';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { AddressInfo } from 'node:net';
+import { encode } from '@msgpack/msgpack';
 
 const infoBody = readFileSync(
   fileURLToPath(new URL('./fixtures/info-c300mk3.txt', import.meta.url)),
@@ -74,6 +75,17 @@ export class FakeCamera {
     if (cmd === 'image.cgi') {
       res.writeHead(200, { 'content-type': 'image/jpeg', 'livescope-status': '0' });
       res.end(Buffer.from([0xff, 0xd8, 0xff, 0xd9])); // minimal JPEG bytes
+      return;
+    }
+
+    if (cmd === 'meta.cgi') {
+      const body = encode({
+        version: '3.0.0', timestamp: 1, realtime: 1,
+        detect: [{ type: 'face', pos: { x: 5000, y: 4000, w: 1200, h: 1800 }, main: true, track: true }],
+        fguide: [],
+      });
+      res.writeHead(200, { 'content-type': 'application/x-msgpack', 'livescope-status': '0' });
+      res.end(Buffer.from(body));
       return;
     }
 

@@ -80,6 +80,32 @@ export interface CameraProfile {
 /** A set of control values to apply together (preset payload / bulk apply). */
 export type ControlSettings = Partial<Record<ControlId, string | number>>;
 
+export interface DetectBox {
+  type: 'face' | 'eye' | 'object';
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  main: boolean;
+  track: boolean;
+}
+
+export interface FocusGuide {
+  status: boolean;
+  level: number;
+  angle: number;
+  dir: string;
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+}
+
+export interface CameraMeta {
+  detect: DetectBox[];
+  fguide?: FocusGuide;
+}
+
 /** An app-managed snapshot of camera settings (NOT a camera-native PTZ preset). */
 export interface CameraPreset {
   id: string;

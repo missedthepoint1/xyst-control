@@ -64,6 +64,9 @@ export function createApiServer(mgr: CameraManager, _opts: ApiServerOptions = {}
     return ok();
   });
 
+  router.add('GET', '/api/cameras/:id/meta', ({ params }) =>
+    mgr.getMeta(params.id!).then((m) => m ?? { detect: [] }));
+
   router.add('GET', '/api/cameras/:id/preview.jpg', async ({ params, res }) => {
     const frame = await mgr.getPreview(params.id!);
     if (!frame) { res.writeHead(502, { 'content-type': 'application/json' }); res.end(JSON.stringify({ error: 'no preview' })); return; }

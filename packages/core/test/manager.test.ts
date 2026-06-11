@@ -239,4 +239,15 @@ describe('CameraManager', () => {
     const saved = JSON.parse(readFileSync(file, 'utf8'));
     expect(saved.cameras).toHaveLength(0);
   });
+
+  it('getMeta decodes detected faces from meta.cgi', async () => {
+    cam = new FakeCamera();
+    const host = await cam.listen();
+    mgr = new CameraManager(configWith(host), { pollMs: 50 });
+    await mgr.load();
+    await mgr.connect('cam-1');
+    const meta = await mgr.getMeta('cam-1');
+    expect(meta?.detect).toHaveLength(1);
+    expect(meta?.detect[0]).toMatchObject({ type: 'face', x: 5000, y: 4000, w: 1200, h: 1800, main: true, track: true });
+  });
 });

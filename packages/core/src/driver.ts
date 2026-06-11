@@ -22,4 +22,6 @@ export interface CameraDriver extends EventEmitter {
   getPreview?(): Promise<import('./types.js').PreviewFrame>;
   /** Set the AF frame to a normalized point (x,y in 0..1) and pull focus there. Optional. */
   setFocusPoint?(x: number, y: number): Promise<void>;
+  /** Fetch detected face/eye/object rectangles from meta.cgi. Optional. */
+  getMeta?(): Promise<import('./types.js').CameraMeta>;
 }

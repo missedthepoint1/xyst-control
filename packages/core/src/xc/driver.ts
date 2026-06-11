@@ -5,6 +5,7 @@ import type {
   ControlState,
 } from '../types.js';
 import { xcRequest, xcRequestBinary } from './client.js';
+import { fetchMeta } from './meta.js';
 import { interpretInfo } from './interpret.js';
 import { buildControlParams, buildRecordParams, buildSettingsParams } from './commands.js';
 import { openInfoStream, type InfoStreamHandle } from './stream.js';
@@ -61,6 +62,10 @@ export class XCProtocolDriver extends EventEmitter implements CameraDriver {
     return xcRequestBinary(this.profile.host, 'image.cgi', {}, {
       auth: this.profile.auth, timeoutMs: this.timeoutMs,
     });
+  }
+
+  async getMeta(): Promise<import('../types.js').CameraMeta> {
+    return fetchMeta(this.profile.host, { auth: this.profile.auth, timeoutMs: this.timeoutMs });
   }
 
   async connect(): Promise<void> {

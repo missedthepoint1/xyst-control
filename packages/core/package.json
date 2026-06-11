@@ -7,5 +7,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@msgpack/msgpack": "^3.0.0"
   }
 }
