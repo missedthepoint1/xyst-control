@@ -57,6 +57,18 @@ describe('XCProtocolDriver', () => {
     expect(onState).toHaveBeenCalled();
   });
 
+  it('setFocusPoint maps normalized coords to the AF frame and pulls focus', async () => {
+    cam = new FakeCamera();
+    const host = await cam.listen();
+    drv = await makeDriver(host);
+    await drv.connect();
+    await drv.setFocusPoint(0.5, 0.25);
+    const last = cam.controlLog.at(-1)!;
+    expect(last).toContain('c.1.focus.frame.1.x=5000'); // round(0.5*9999)
+    expect(last).toContain('c.1.focus.frame.1.y=2500'); // round(0.25*9999)
+    expect(last).toContain('c.1.focus.action=one_shot');
+  });
+
   it('goes to error status and recovers when the camera drops', async () => {
     cam = new FakeCamera();
     const host = await cam.listen();

@@ -212,6 +212,18 @@ describe('CameraManager', () => {
     expect(saved.cameras[0].video).toEqual({ type: 'protocol' });
   });
 
+  it('setFocusPoint routes to the driver', async () => {
+    cam = new FakeCamera();
+    const host = await cam.listen();
+    mgr = new CameraManager(configWith(host), { pollMs: 50 });
+    await mgr.load();
+    await mgr.connect('cam-1');
+    await mgr.setFocusPoint('cam-1', 0, 1);
+    const last = cam.controlLog.at(-1)!;
+    expect(last).toContain('c.1.focus.frame.1.x=0');
+    expect(last).toContain('c.1.focus.frame.1.y=9999');
+  });
+
   it('removeCamera disconnects, drops it, persists, and emits removed', async () => {
     cam = new FakeCamera();
     const host = await cam.listen();

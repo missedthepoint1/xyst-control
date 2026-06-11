@@ -107,6 +107,12 @@ export class CameraManager extends EventEmitter {
     return randomUUID();
   }
 
+  async setFocusPoint(cameraId: string, x: number, y: number): Promise<void> {
+    const d = this.drivers.get(cameraId);
+    if (!d?.setFocusPoint) throw new Error(`camera ${cameraId} has no focus control`);
+    await d.setFocusPoint(x, y);
+  }
+
   async getPreview(cameraId: string): Promise<import('./types.js').PreviewFrame | undefined> {
     const d = this.drivers.get(cameraId);
     return d?.getPreview ? d.getPreview() : undefined;

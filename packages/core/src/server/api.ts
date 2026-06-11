@@ -57,6 +57,13 @@ export function createApiServer(mgr: CameraManager, _opts: ApiServerOptions = {}
     mgr.deletePreset(params.id!, params.presetId!).then(ok));
   router.add('DELETE', '/api/cameras/:id', ({ params }) => mgr.removeCamera(params.id!).then(ok));
 
+  router.add('POST', '/api/cameras/:id/focus', async ({ params, body }) => {
+    const b = body as { x?: number; y?: number };
+    if (typeof b?.x !== 'number' || typeof b?.y !== 'number') throw new HttpError(400, 'body.x and body.y (0..1) required');
+    await mgr.setFocusPoint(params.id!, b.x, b.y);
+    return ok();
+  });
+
   router.add('GET', '/api/cameras/:id/preview.jpg', async ({ params, res }) => {
     const frame = await mgr.getPreview(params.id!);
     if (!frame) { res.writeHead(502, { 'content-type': 'application/json' }); res.end(JSON.stringify({ error: 'no preview' })); return; }

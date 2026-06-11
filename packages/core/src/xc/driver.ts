@@ -99,6 +99,16 @@ export class XCProtocolDriver extends EventEmitter implements CameraDriver {
     await this.control(params);
   }
 
+  async setFocusPoint(nx: number, ny: number): Promise<void> {
+    const clamp = (v: number) => Math.max(0, Math.min(9999, Math.round(v * 9999)));
+    await this.control({
+      'c.1.focus.frame.pos': 'movable',
+      'c.1.focus.frame.1.x': String(clamp(nx)),
+      'c.1.focus.frame.1.y': String(clamp(ny)),
+      'c.1.focus.action': 'one_shot',
+    });
+  }
+
   // --- internals ---
 
   private async control(params: Record<string, string>): Promise<void> {
