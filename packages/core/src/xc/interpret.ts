@@ -153,6 +153,17 @@ export function interpretInfo(map: Map): CameraSnapshot {
   if ('c.1.focus.action.list' in map) {
     controls.focusAction = { id: 'focusAction', available: true, list: list(map['c.1.focus.action.list']) };
   }
+  // Camera OSD output (info burned onto the monitor/SDI/HDMI outputs). Set via
+  // configuration.cgi, not control.cgi (see driver.setControl). `off` hides it;
+  // any `displevelN` value shows it. Offered only when the body advertises it.
+  if ('monitoring.osd.framedisplay' in map) {
+    controls.osdOutput = {
+      id: 'osdOutput',
+      available: true,
+      value: map['monitoring.osd.framedisplay'],
+      list: list(map['monitoring.osd.framedisplay.list']),
+    };
+  }
 
   const power: PowerState = {
     source: map['s.power.source'] || undefined,

@@ -34,6 +34,9 @@ export function CameraPanel({ state }: { state: CameraState }) {
     <section className={`card panel${rec ? ' is-rec' : ''}`}>
       <VideoSourceSelect current={state.video} onChange={(v) => window.xyst.setVideoSource(id, v)} />
       <VideoPanel cameraId={id} source={state.video} recording={rec} apiBase={apiBase} onFocus={(x, y) => setLastFocus({ x, y })} />
+      {state.video && state.video.type !== 'none' && (
+        <FocusPointBar cameraId={id} lastFocus={lastFocus} />
+      )}
       <header className="panel__head">
         <div>
           <div className="panel__title">{state.model ?? state.name ?? id}</div>
@@ -88,12 +91,19 @@ export function CameraPanel({ state }: { state: CameraState }) {
         )}
       </div>
 
-      {(c.focus?.available || c.faceDetect?.available || c.colorbar?.available || c.focusAction?.available) && (
+      {(c.focus?.available || c.faceDetect?.available || c.colorbar?.available || c.focusAction?.available || c.osdOutput?.available) && (
         <div className="switches">
           {c.focus?.available && (
             <ControlSegment label="Focus" value={c.focus.value}
               options={segOpts(c.focus, { auto: 'AF', manual: 'MF' })}
               onChange={(v) => set('focus', v)} />
+          )}
+          {c.osdOutput?.available && (
+            <ControlSegment label="Camera OSD" value={c.osdOutput.value === 'off' ? 'off' : 'on'}
+              options={[{ value: 'off', label: 'Off' }, { value: 'on', label: 'On' }]}
+              onChange={(v) => set('osdOutput', v === 'on'
+                ? (c.osdOutput!.list?.find((o) => o !== 'off') ?? 'displevel1_2')
+                : 'off')} />
           )}
           {c.faceDetect?.available && (
             <ControlSegment label="Face" value={c.faceDetect.value}
@@ -156,9 +166,6 @@ export function CameraPanel({ state }: { state: CameraState }) {
       )}
 
       <PresetBar cameraId={state.id} presets={presets} />
-      {state.video && state.video.type !== 'none' && (
-        <FocusPointBar cameraId={id} lastFocus={lastFocus} />
-      )}
     </section>
   );
 }

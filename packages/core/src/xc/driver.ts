@@ -96,6 +96,11 @@ export class XCProtocolDriver extends EventEmitter implements CameraDriver {
   async stopRecording(): Promise<void> { await this.control(buildRecordParams(false)); }
 
   async setControl(id: ControlId, value: string | number): Promise<void> {
+    // Camera OSD output lives on configuration.cgi, not control.cgi.
+    if (id === 'osdOutput') {
+      await this.configure({ 'monitoring.osd.framedisplay': String(value) });
+      return;
+    }
     await this.control(buildControlParams(id, value));
   }
 
@@ -124,6 +129,19 @@ export class XCProtocolDriver extends EventEmitter implements CameraDriver {
         auth: this.profile.auth, timeoutMs: this.timeoutMs,
       });
       this.mergeMap(map);
+      await this.refresh();
+    } finally {
+      this.controlInFlight = false;
+    }
+  }
+
+  /** Like control(), but targets configuration.cgi (monitoring/assist settings). */
+  private async configure(params: Record<string, string>): Promise<void> {
+    this.controlInFlight = true;
+    try {
+      await xcRequest(this.profile.host, 'configuration.cgi', params, {
+        auth: this.profile.auth, timeoutMs: this.timeoutMs,
+      });
       await this.refresh();
     } finally {
       this.controlInFlight = false;
