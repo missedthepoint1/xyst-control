@@ -56,6 +56,26 @@ describe('buildControlParams', () => {
       'c.1.me.gain': '120',
     });
   });
+
+  it('shutterMode sets the shutter mode under manual exposure', () => {
+    expect(buildControlParams('shutterMode', 'angle')).toEqual({
+      'c.1.exp': 'manual', 'c.1.me.shutter.mode': 'angle',
+    });
+  });
+  it('shutterAngle sets angle mode and the angle value (deg x100)', () => {
+    expect(buildControlParams('shutterAngle', 18000)).toEqual({
+      'c.1.exp': 'manual', 'c.1.me.shutter.mode': 'angle', 'c.1.me.angle': '18000',
+    });
+  });
+  it('focus toggles AF/MF', () => {
+    expect(buildControlParams('focus', 'auto')).toEqual({ 'c.1.focus': 'auto' });
+  });
+  it('faceDetect sets the detect mode', () => {
+    expect(buildControlParams('faceDetect', 'facecatch')).toEqual({ 'c.1.focus.detect': 'facecatch' });
+  });
+  it('colorbar toggles color bars', () => {
+    expect(buildControlParams('colorbar', 'on')).toEqual({ 'c.1.colorbar': 'on' });
+  });
 });
 
 describe('buildSettingsParams', () => {

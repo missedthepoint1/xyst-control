@@ -107,6 +107,17 @@ export class CameraManager extends EventEmitter {
     return randomUUID();
   }
 
+  async removeCamera(cameraId: string): Promise<void> {
+    const driver = this.drivers.get(cameraId);
+    if (driver) {
+      await driver.disconnect().catch(() => {});
+      this.drivers.delete(cameraId);
+    }
+    this.profiles.delete(cameraId);
+    await this.save();
+    this.emit('removed', cameraId);
+  }
+
   async addCamera(profile: CameraProfile): Promise<void> {
     if (this.profiles.has(profile.id)) {
       throw new Error(`camera already exists: ${profile.id}`);

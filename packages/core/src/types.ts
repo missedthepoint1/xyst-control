@@ -1,6 +1,9 @@
 export type ConnectionStatus = 'disconnected' | 'connecting' | 'connected' | 'error';
 
-export type ControlId = 'iso' | 'gain' | 'shutter' | 'iris' | 'wb' | 'wbKelvin' | 'nd';
+export type ControlId =
+  | 'iso' | 'gain' | 'shutter' | 'shutterMode' | 'shutterAngle'
+  | 'iris' | 'wb' | 'wbKelvin' | 'nd'
+  | 'focus' | 'faceDetect' | 'colorbar';
 
 /** A single discovered control: what it currently is + what values are valid. */
 export interface ControlState {

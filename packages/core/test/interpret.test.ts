@@ -47,4 +47,13 @@ describe('interpretInfo', () => {
     expect(snap2.controls.iso).toBeUndefined();
     expect(snap2.record.recording).toBe(true);
   });
+
+  it('reads shutter angle, focus, face-detect and colorbar', () => {
+    expect(snap.controls.shutterAngle?.value).toBe(18000); // 180 deg
+    expect(snap.controls.shutterAngle?.list).toContain(36000); // 360 deg
+    expect(snap.controls.focus?.value).toBe('manual');
+    expect(snap.controls.focus?.list).toEqual(['auto', 'manual']);
+    expect(snap.controls.faceDetect?.value).toBe('off');
+    expect(snap.controls.colorbar?.value).toBe('off');
+  });
 });

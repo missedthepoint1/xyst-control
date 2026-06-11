@@ -28,6 +28,10 @@ export function buildControlParams(id: ControlId, value: string | number): Recor
     case 'shutter':
       // Phase 1: concrete speed only; slow/clearscan/angle modes are a later refinement.
       return { 'c.1.exp': 'manual', 'c.1.me.shutter.mode': 'speed', 'c.1.me.shutter': v };
+    case 'shutterMode':
+      return { 'c.1.exp': 'manual', 'c.1.me.shutter.mode': v };
+    case 'shutterAngle':
+      return { 'c.1.exp': 'manual', 'c.1.me.shutter.mode': 'angle', 'c.1.me.angle': v };
     case 'iris':
       // Lens aperture by F-number (x100, e.g. 400 = f/4).
       return { 'c.1.exp': 'manual', 'c.1.me.diaphragm': v };
@@ -37,6 +41,12 @@ export function buildControlParams(id: ControlId, value: string | number): Recor
       return { 'c.1.wb': 'kelvin', 'c.1.wb.kelvin': v };
     case 'nd':
       return { 'c.1.nd.filter': v };
+    case 'focus':
+      return { 'c.1.focus': v };
+    case 'faceDetect':
+      return { 'c.1.focus.detect': v };
+    case 'colorbar':
+      return { 'c.1.colorbar': v };
   }
 }
 

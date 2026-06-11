@@ -51,6 +51,15 @@ export function interpretInfo(map: Map): CameraSnapshot {
       modeList: list(map['c.1.me.shutter.mode.list'])?.map(String),
     };
   }
+  if ('c.1.me.angle' in map) {
+    controls.shutterAngle = {
+      id: 'shutterAngle',
+      available: true,
+      value: num(map['c.1.me.angle']),
+      list: list(map['c.1.me.angle.list']),
+      unit: 'deg',
+    };
+  }
   // Iris uses the lens aperture (F-number x100, e.g. 400 = f/4), advertised as a
   // discrete list. The abstract `c.1.me.iris` value is for PTZ servo bodies; cinema
   // bodies report a real F-number via `c.1.me.diaphragm`. Offered only when a
@@ -88,6 +97,30 @@ export function interpretInfo(map: Map): CameraSnapshot {
       value: num(map['c.1.nd.filter']),
       list: list(map['c.1.nd.filter.list']),
       mode: map['c.1.nd.mode'],
+    };
+  }
+  if ('c.1.focus' in map) {
+    controls.focus = {
+      id: 'focus',
+      available: true,
+      value: map['c.1.focus'],
+      list: list(map['c.1.focus.list']),
+    };
+  }
+  if ('c.1.focus.detect' in map) {
+    controls.faceDetect = {
+      id: 'faceDetect',
+      available: true,
+      value: map['c.1.focus.detect'],
+      list: list(map['c.1.focus.detect.list']),
+    };
+  }
+  if ('c.1.colorbar' in map) {
+    controls.colorbar = {
+      id: 'colorbar',
+      available: true,
+      value: map['c.1.colorbar'],
+      list: list(map['c.1.colorbar.list']),
     };
   }
 
