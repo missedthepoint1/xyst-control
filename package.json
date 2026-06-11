@@ -10,9 +10,11 @@
     "test": "pnpm -r test",
     "typecheck": "pnpm -r typecheck",
     "dev": "pnpm --filter @xyst/app dev",
-    "build": "pnpm -r build"
+    "build": "pnpm -r build",
+    "package": "pnpm --filter @xyst/app package"
   },
   "devDependencies": {
+    "@resvg/resvg-js": "^2.6.2",
     "@types/node": "^20.14.0",
     "playwright-core": "^1.60.0",
     "typescript": "^5.5.4",

@@ -1,6 +1,9 @@
 node_modules/
 dist/
 out/
+release/
+packages/app/build/icon.iconset/
+packages/app/build/icon-preview.png
 .work/
 config/cameras.json
 *.log

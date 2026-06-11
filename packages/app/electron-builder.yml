@@ -1,0 +1,27 @@
+appId: la.xyst.control
+productName: XYST CONTROL
+directories:
+  output: release
+  buildResources: build
+# electron-vite fully bundles main/preload/renderer (incl. @xyst/core) into out/,
+# so the packaged app needs no runtime node_modules — ship out/ + package.json only.
+files:
+  - out/**/*
+  - package.json
+npmRebuild: false
+mac:
+  category: public.app-category.video
+  icon: build/icon.icns
+  target:
+    - dmg
+dmg:
+  title: ${productName}
+win:
+  icon: build/icon.png
+  target:
+    - nsis
+linux:
+  icon: build/icon.png
+  category: AudioVideo
+  target:
+    - AppImage
