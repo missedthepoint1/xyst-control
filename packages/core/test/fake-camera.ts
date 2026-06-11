@@ -71,6 +71,12 @@ export class FakeCamera {
     const url = new URL(req.url ?? '', 'http://x');
     const cmd = url.pathname.replace('/-wvhttp-01-/', '');
 
+    if (cmd === 'image.cgi') {
+      res.writeHead(200, { 'content-type': 'image/jpeg', 'livescope-status': '0' });
+      res.end(Buffer.from([0xff, 0xd8, 0xff, 0xd9])); // minimal JPEG bytes
+      return;
+    }
+
     if (cmd === 'info.cgi' && url.searchParams.get('type') === 'stream') {
       res.writeHead(200, {
         'content-type': `multipart/x-mixed-replace; boundary=${BOUNDARY}`,

@@ -4,7 +4,7 @@ import type {
   CameraProfile, CameraState, CameraSnapshot, ConnectionStatus, ControlId, ControlSettings,
   ControlState,
 } from '../types.js';
-import { xcRequest } from './client.js';
+import { xcRequest, xcRequestBinary } from './client.js';
 import { interpretInfo } from './interpret.js';
 import { buildControlParams, buildRecordParams, buildSettingsParams } from './commands.js';
 import { openInfoStream, type InfoStreamHandle } from './stream.js';
@@ -52,8 +52,15 @@ export class XCProtocolDriver extends EventEmitter implements CameraDriver {
       status: this._status,
       updatedAt: this.snapshotAt,
       lastError: this.lastError,
+      video: this.profile.video,
       ...this.snapshot,
     };
+  }
+
+  async getPreview(): Promise<import('../types.js').PreviewFrame> {
+    return xcRequestBinary(this.profile.host, 'image.cgi', {}, {
+      auth: this.profile.auth, timeoutMs: this.timeoutMs,
+    });
   }
 
   async connect(): Promise<void> {

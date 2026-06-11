@@ -4,7 +4,7 @@ import { XcError, LivescopeError, AuthError } from './errors.js';
 import {
   parseChallenge, buildDigestHeader, buildBasicHeader, type DigestChallenge,
 } from './auth.js';
-import type { CameraAuth } from '../types.js';
+import type { CameraAuth, PreviewFrame } from '../types.js';
 
 export interface XcRequestOptions {
   timeoutMs?: number;
@@ -99,3 +99,22 @@ async function fetchWithTimeout(url: string, init: RequestInit, timeoutMs: numbe
 }
 
 const delay = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+export async function xcRequestBinary(
+  host: string,
+  command: string,
+  params: Record<string, string | number> = {},
+  opts: XcRequestOptions = {},
+): Promise<PreviewFrame> {
+  const { timeoutMs = 4000 } = opts;
+  const path = buildPath(command, params);
+  const url = `http://${host}${path}`;
+  let res = await fetchWithTimeout(url, {}, timeoutMs);
+  if (res.status === 401 && opts.auth?.username) {
+    const header = authHeaderFor(res, path, opts);
+    if (header) res = await fetchWithTimeout(url, { headers: { Authorization: header } }, timeoutMs);
+  }
+  if (res.status !== 200) throw new XcError(`HTTP ${res.status} for ${url}`);
+  const buf = new Uint8Array(await res.arrayBuffer());
+  return { data: buf, contentType: res.headers.get('content-type') ?? 'image/jpeg' };
+}

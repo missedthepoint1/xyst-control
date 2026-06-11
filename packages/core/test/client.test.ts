@@ -57,4 +57,14 @@ describe('xcRequest', () => {
       .rejects.toBeInstanceOf(LivescopeError);
     srv.close();
   });
+
+  it('xcRequestBinary fetches image bytes', async () => {
+    const { xcRequestBinary } = await import('../src/xc/client.js');
+    cam = new FakeCamera();
+    const host = await cam.listen();
+    const frame = await xcRequestBinary(host, 'image.cgi');
+    expect(frame.contentType).toBe('image/jpeg');
+    expect(frame.data[0]).toBe(0xff);
+    expect(frame.data[1]).toBe(0xd8);
+  });
 });

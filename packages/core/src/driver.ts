@@ -18,4 +18,6 @@ export interface CameraDriver extends EventEmitter {
   setControl(id: ControlId, value: string | number): Promise<void>;
   /** Apply several controls together (capability-aware) in one request. */
   applySettings(settings: ControlSettings): Promise<void>;
+  /** Fetch a single preview frame (protocol JPEG). Optional — not all drivers support it. */
+  getPreview?(): Promise<import('./types.js').PreviewFrame>;
 }

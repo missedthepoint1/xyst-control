@@ -53,12 +53,19 @@ export interface CameraState extends CameraSnapshot {
   status: ConnectionStatus;
   updatedAt: number;
   lastError?: string;
+  video?: VideoSource;
 }
 
 export interface CameraAuth {
   username?: string;
   password?: string;
 }
+
+/** A single preview frame (JPEG bytes) fetched from a camera. */
+export interface PreviewFrame { data: Uint8Array; contentType: string; }
+
+/** Per-camera video source for the live-view panel (decoupled from control). */
+export interface VideoSource { type: 'none' | 'protocol' | 'capture'; deviceId?: string; }
 
 export interface CameraProfile {
   id: string;
@@ -67,6 +74,7 @@ export interface CameraProfile {
   host: string;
   auth?: CameraAuth;
   presets?: CameraPreset[];
+  video?: VideoSource;
 }
 
 /** A set of control values to apply together (preset payload / bulk apply). */

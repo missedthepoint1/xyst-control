@@ -107,6 +107,19 @@ export class CameraManager extends EventEmitter {
     return randomUUID();
   }
 
+  async getPreview(cameraId: string): Promise<import('./types.js').PreviewFrame | undefined> {
+    const d = this.drivers.get(cameraId);
+    return d?.getPreview ? d.getPreview() : undefined;
+  }
+
+  async setVideoSource(cameraId: string, video: import('./types.js').VideoSource): Promise<void> {
+    const profile = this.profiles.get(cameraId);
+    if (!profile) throw new Error(`no camera with id ${cameraId}`);
+    profile.video = video;
+    await this.save();
+    this.emit('state', cameraId, this.getState(cameraId)); // surface the change to the UI
+  }
+
   async removeCamera(cameraId: string): Promise<void> {
     const driver = this.drivers.get(cameraId);
     if (driver) {

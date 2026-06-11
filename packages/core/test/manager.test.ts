@@ -197,6 +197,21 @@ describe('CameraManager', () => {
     await expect(mgr.recallPresetById('nope')).rejects.toThrow(/preset/i);
   });
 
+  it('getPreview returns a frame and setVideoSource persists', async () => {
+    cam = new FakeCamera();
+    const host = await cam.listen();
+    const file = configWith(host);
+    mgr = new CameraManager(file, { pollMs: 50 });
+    await mgr.load();
+    await mgr.connect('cam-1');
+    const frame = await mgr.getPreview('cam-1');
+    expect(frame?.contentType).toBe('image/jpeg');
+    await mgr.setVideoSource('cam-1', { type: 'protocol' });
+    expect(mgr.getState('cam-1')?.video).toEqual({ type: 'protocol' });
+    const saved = JSON.parse(readFileSync(file, 'utf8'));
+    expect(saved.cameras[0].video).toEqual({ type: 'protocol' });
+  });
+
   it('removeCamera disconnects, drops it, persists, and emits removed', async () => {
     cam = new FakeCamera();
     const host = await cam.listen();
