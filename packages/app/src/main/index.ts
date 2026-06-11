@@ -31,7 +31,7 @@ async function createWindow(): Promise<void> {
   else await win.loadFile(join(import.meta.dirname, '../renderer/index.html'));
 }
 
-app.whenReady().then(async () => {
+async function main(): Promise<void> {
   // Grant camera/mic so SDI/HDMI capture-card video works (local trusted app).
   session.defaultSession.setPermissionRequestHandler((_wc, permission, cb) => cb(permission === 'media'));
   const mgr = new CameraManager(resolveConfigPath());
@@ -39,6 +39,12 @@ app.whenReady().then(async () => {
   registerIpc(mgr, () => win);
   const apiPort = resolveApiPort();
   const api = createApiServer(mgr);
+  // A port conflict (e.g. another instance) must never crash the app — the REST API is
+  // optional; all control runs over IPC. Fail soft with a warning instead.
+  api.on('error', (err: NodeJS.ErrnoException) => {
+    if (err.code === 'EADDRINUSE') console.warn(`XYST API port ${apiPort} already in use — REST API not started (control still works).`);
+    else console.error('XYST API server error:', err);
+  });
   api.listen(apiPort, '127.0.0.1', () => console.log(`XYST API on http://127.0.0.1:${apiPort}`));
   ipcMain.handle('app:apiBase', () => `http://127.0.0.1:${apiPort}`);
   installMenu();
@@ -49,6 +55,17 @@ app.whenReady().then(async () => {
   }
   await createWindow();
   await mgr.connectAll().catch(() => {});
-});
+}
+
+// One running instance owns the cameras + the API port (the app is the single source of
+// truth). A second launch focuses the existing window instead of crashing on the port.
+if (!app.requestSingleInstanceLock()) {
+  app.quit();
+} else {
+  app.on('second-instance', () => {
+    if (win) { if (win.isMinimized()) win.restore(); win.focus(); }
+  });
+  app.whenReady().then(main);
+}
 
 app.on('window-all-closed', () => { if (process.platform !== 'darwin') app.quit(); });
