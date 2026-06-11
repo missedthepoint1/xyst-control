@@ -2,40 +2,80 @@ import { createRoot } from 'react-dom/client';
 import { useState } from 'react';
 import './theme.css';
 import './app.css';
-import { AppShell } from './components/AppShell.js';
+import { AppShell, type GridCols } from './components/AppShell.js';
 import { CameraPanel } from './components/CameraPanel.js';
 import { AddCameraForm } from './components/AddCameraForm.js';
 import { Multiview } from './components/Multiview.js';
+import { ErrorBoundary } from './components/ErrorBoundary.js';
 import { useCameras } from './hooks/useCameras.js';
+import { usePref } from './hooks/usePref.js';
+import { useReorder } from './hooks/useReorder.js';
 
 function App() {
   const { states, refresh } = useCameras();
-  const [view, setView] = useState<'panels' | 'multiview'>('panels');
+  const [view, setView] = usePref<'panels' | 'multiview'>('view', 'panels');
   const [single, setSingle] = useState<string | null>(null);
+  const [adding, setAdding] = useState(false);
+  const [cols, setCols] = usePref<GridCols>('cols', 'full');
+  const [labels, setLabels] = usePref<boolean>('labels', true);
 
   const selected = single ? states.find((s) => s.id === single) : undefined;
+  const anyRec = states.some((s) => s.record.recording);
+  const ids = states.map((s) => s.id);
+  // Wrap IPC calls so a failure (e.g. a stale preload/main bundle that still lacks these
+  // handlers) logs a clear error instead of white-screening the app via an unhandled throw.
+  const commitOrder = (next: string[]) => {
+    Promise.resolve().then(() => window.xyst.reorderCameras(next)).then(refresh)
+      .catch((e) => console.error('reorderCameras failed', e));
+  };
+  const rename = (id: string, name: string) => {
+    Promise.resolve().then(() => window.xyst.renameCamera(id, name))
+      .catch((e) => console.error('renameCamera failed', e));
+  };
+  const { overId, handleProps, itemProps } = useReorder(ids, commitOrder);
 
   return (
     <AppShell
       view={view}
       onView={(v) => { setSingle(null); setView(v); }}
-      onRecAll={() => window.xyst.recordAll(true)}
-      onStopAll={() => window.xyst.recordAll(false)}
+      cols={cols}
+      onCols={setCols}
+      labels={labels}
+      onLabels={() => setLabels(!labels)}
+      onAdd={() => setAdding(true)}
+      recActive={anyRec}
+      onToggleRec={() => window.xyst.recordAll(!anyRec)}
     >
       {selected ? (
         <div className="single">
           <button className="btn btn--ghost single__back" onClick={() => setSingle(null)}>← Multiview</button>
-          <CameraPanel state={selected} />
+          <CameraPanel state={selected} labels={labels} onRename={(name) => rename(selected.id, name)} />
         </div>
       ) : view === 'multiview' ? (
-        <Multiview states={states} onSelect={(id) => setSingle(id)} />
+        <Multiview states={states} labels={labels} onSelect={(id) => setSingle(id)} onReorder={commitOrder} onRename={rename} />
+      ) : states.length === 0 ? (
+        <div className="empty">
+          <div className="empty__title">No cameras connected</div>
+          <div className="empty__sub">Add a camera to start controlling it.</div>
+          <button className="btn btn--accent" onClick={() => setAdding(true)}><span className="plus-ic">+</span> Add camera</button>
+        </div>
       ) : (
-        <>
-          {states.map((s) => <CameraPanel key={s.id} state={s} />)}
-          <AddCameraForm onAdded={refresh} />
-        </>
+        states.map((s) => (
+          <CameraPanel key={s.id} state={s} labels={labels} onRename={(name) => rename(s.id, name)}
+            dragHandleProps={handleProps(s.id)} dragItemProps={itemProps(s.id)} isOver={overId === s.id} />
+        ))
+      )}
+      {adding && (
+        <div className="modal" onClick={() => setAdding(false)}>
+          <div className="modal__card" onClick={(e) => e.stopPropagation()}>
+            <button className="modal__close" onClick={() => setAdding(false)} aria-label="Close">×</button>
+            <AddCameraForm onAdded={() => { refresh(); setAdding(false); }} />
+          </div>
+        </div>
       )}
     </AppShell>
   );
 }
-createRoot(document.getElementById('root')!).render(<App />);
+createRoot(document.getElementById('root')!).render(
+  <ErrorBoundary><App /></ErrorBoundary>,
+);

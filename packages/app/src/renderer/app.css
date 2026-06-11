@@ -27,8 +27,21 @@
 .app__body { min-height: 0; min-width: 0; overflow-y: scroll; scrollbar-gutter: stable; }
 .app__grid {
   padding: 24px; display: grid; gap: 20px; align-content: start; align-items: start;
-  grid-template-columns: repeat(auto-fill, minmax(min(380px, 100%), 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(380px, 100%), 1fr));
 }
+/* explicit grid-layout choices (panels view) */
+.app__grid--full { grid-template-columns: 1fr; }
+.app__grid--two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+/* 4-up: fit all panels on one screen (2 cols, rows share the height); each panel
+   scrolls internally instead of the page scrolling. >4 cameras → shorter rows, still no
+   page scroll. Pairs with .app__body--fit (kills the body scroll). */
+.app__grid--quad {
+  height: 100%; grid-template-columns: repeat(2, minmax(0, 1fr)); grid-auto-rows: 1fr;
+  align-content: stretch; align-items: stretch;
+}
+.app__grid--quad > * { min-height: 0; }
+.app__grid--quad > .panel { overflow-y: auto; }
+.app__body--fit { overflow: hidden; }
 
 .toolbar { display: flex; gap: 10px; }
 
@@ -54,6 +67,9 @@
   border-color: rgba(255, 56, 95, 0.4);
 }
 .btn--rec .dot { background: var(--rec); box-shadow: 0 0 10px var(--rec-glow); }
+.btn--stop { background: var(--rec); border-color: var(--rec); color: #fff; box-shadow: 0 0 18px var(--rec-glow); }
+.btn--stop:hover { background: #ff4d70; border-color: #ff4d70; }
+.btn--stop .sq { background: #fff; }
 .btn .dot { width: 9px; height: 9px; border-radius: 50%; background: currentColor; }
 .btn .sq { width: 9px; height: 9px; border-radius: 2px; background: currentColor; }
 
@@ -66,10 +82,14 @@
   backdrop-filter: blur(16px) saturate(140%);
   -webkit-backdrop-filter: blur(16px) saturate(140%);
 }
-.panel { padding: 18px; animation: floatIn .35s ease both; position: relative; overflow: hidden; }
-.panel::before {
-  content: ""; position: absolute; inset: 0 0 auto 0; height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.25), transparent);
+.panel {
+  padding: 18px; animation: floatIn .35s ease both; position: relative; overflow: hidden;
+  /* Top hairline as a pinned background layer over the glass — backgrounds default to
+     attachment:scroll (fixed to the border box), so it stays put when the panel scrolls
+     internally in 4-up, unlike the old absolute ::before. */
+  background:
+    linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.25), transparent) top left / 100% 1px no-repeat,
+    var(--glass);
 }
 .panel.is-rec { border-color: rgba(255, 56, 95, 0.6); animation: floatIn .35s ease both, recPulse 1.8s ease-in-out infinite; }
 
@@ -150,6 +170,39 @@
 .add__hint { color: var(--faint); font-size: 11.5px; margin-top: 2px; }
 .err { color: var(--rec); font-size: 12.5px; }
 
+/* toolbar add button */
+.btn--add .plus-ic { font-size: 16px; font-weight: 800; line-height: 1; color: var(--accent); }
+.btn--add:hover { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent-glow); }
+
+/* add-camera modal */
+.modal { position: fixed; inset: 0; z-index: 100; display: grid; place-items: center; padding: 24px;
+  background: rgba(4, 4, 9, 0.62); backdrop-filter: blur(5px); animation: fadeIn .14s ease both; }
+.modal__card { position: relative; width: min(420px, 92vw); }
+.modal__card .add { border-style: solid; }
+.modal__close { position: absolute; top: 14px; right: 14px; z-index: 1; width: 26px; height: 26px;
+  border-radius: 7px; display: grid; place-items: center; color: var(--muted); font-size: 18px; line-height: 1;
+  background: var(--glass); border: 1px solid var(--border); transition: color .15s, border-color .15s; }
+.modal__close:hover { color: var(--text); border-color: var(--border-strong); }
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+/* empty state (no cameras) */
+.empty { grid-column: 1 / -1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 8px; padding: 90px 20px; text-align: center; animation: floatIn .35s ease both; }
+.empty__title { font-size: 18px; font-weight: 700; }
+.empty__sub { color: var(--muted); margin-bottom: 10px; }
+.empty .plus-ic { font-size: 15px; font-weight: 800; margin-right: 2px; }
+
+/* render-error boundary screen */
+.crash { padding: 40px; max-width: 820px; margin: 32px auto; }
+.crash__title { font-size: 18px; font-weight: 800; color: var(--rec); margin-bottom: 14px; }
+.crash__msg { white-space: pre-wrap; word-break: break-word; font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px; line-height: 1.5; color: var(--muted); background: var(--glass); border: 1px solid var(--border);
+  border-radius: 10px; padding: 14px 16px; overflow: auto; max-height: 56vh; margin-bottom: 18px; }
+
+/* add-camera body field */
+.add__field { display: grid; gap: 6px; }
+.add__label { font-size: 11.5px; letter-spacing: 0.4px; color: var(--faint); text-transform: uppercase; }
+
 /* segmented control */
 .seg { display: inline-flex; background: rgba(255, 255, 255, 0.04); border: 1px solid var(--border);
   border-radius: 10px; padding: 3px; gap: 3px; }
@@ -157,6 +210,8 @@
   color: var(--muted); transition: color .15s, background .15s; white-space: nowrap; }
 .seg__btn:hover { color: var(--text); }
 .seg__btn.is-active { color: #0b0a16; background: var(--accent-grad); box-shadow: 0 4px 14px var(--accent-glow); }
+.seg--icons .seg__btn { padding: 7px 10px; display: grid; place-items: center; }
+.seg--icons svg { width: 15px; height: 15px; display: block; fill: currentColor; }
 
 /* stepper */
 .stepper { display: flex; align-items: center; gap: 8px; }
@@ -203,7 +258,11 @@
   overflow: hidden; margin-bottom: 16px; border: 1px solid var(--border); }
 .video--rec { border-color: var(--rec); box-shadow: inset 0 0 0 1px var(--rec), 0 0 22px var(--rec-glow); }
 .video__img { width: 100%; height: 100%; object-fit: contain; display: block; background: #000; }
-.video__placeholder { position: absolute; inset: 0; display: grid; place-items: center; color: var(--faint); font-size: 13px; }
+.video__placeholder { position: absolute; inset: 0; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 11px; pointer-events: none;
+  background: radial-gradient(ellipse 60% 60% at center, rgba(255,255,255,0.03), transparent 75%); }
+.video__ph-icon { width: 34px; height: 34px; color: var(--faint); opacity: 0.65; }
+.video__ph-text { font-size: 13px; letter-spacing: 0.3px; color: var(--muted); }
 .video__tally { position: absolute; top: 10px; left: 10px; display: inline-flex; align-items: center; gap: 6px;
   background: var(--rec); color: #fff; font-size: 11px; font-weight: 700; padding: 4px 9px; border-radius: 7px;
   letter-spacing: 0.6px; box-shadow: 0 0 14px var(--rec-glow); }
@@ -222,6 +281,33 @@
 /* multiview grid */
 .multiview { display: grid; gap: 16px; grid-template-columns: repeat(auto-fill, minmax(min(440px, 100%), 1fr)); align-content: start; align-items: start; }
 .multiview__empty { color: var(--muted); padding: 40px; text-align: center; }
+
+/* ---------- relabel / reorder / labels toggle ---------- */
+.drag-handle { display: grid; place-items: center; width: 24px; height: 24px; border-radius: 7px;
+  color: var(--faint); background: transparent; border: 1px solid transparent; cursor: grab; flex-shrink: 0; }
+.drag-handle:hover { color: var(--muted); background: var(--glass); border-color: var(--border); }
+.drag-handle:active { cursor: grabbing; }
+.grip-ic { width: 14px; height: 14px; fill: currentColor; display: block; }
+.panel__head-left { display: flex; align-items: flex-start; gap: 8px; min-width: 0; }
+.panel__titlewrap { min-width: 0; }
+.panel.is-drop, .mvtile.is-drop { outline: 2px dashed var(--accent); outline-offset: 3px; border-radius: var(--radius); }
+.panel__title { cursor: text; }
+.panel__title-edit { font-weight: 700; font-size: 16px; letter-spacing: 0.2px; color: var(--text);
+  background: var(--glass); border: 1px solid var(--accent); border-radius: 7px; padding: 2px 8px; width: 100%; max-width: 240px; outline: none; }
+
+.mvtile { position: relative; }
+.mvtile__grip { position: absolute; top: 8px; right: 8px; z-index: 3; color: #fff;
+  background: rgba(0, 0, 0, 0.5); border-color: transparent; opacity: 0.7; }
+.mvtile__grip:hover { opacity: 1; background: rgba(0, 0, 0, 0.72); }
+.mvtile__label { position: absolute; bottom: 10px; left: 10px; z-index: 3; max-width: 72%;
+  background: rgba(0, 0, 0, 0.55); color: #fff; font-size: 12px; font-weight: 600; padding: 3px 9px;
+  border-radius: 6px; backdrop-filter: blur(6px); cursor: text; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mvtile__edit { position: absolute; bottom: 10px; left: 10px; z-index: 4; max-width: 72%; font-size: 12px; font-weight: 600;
+  color: #fff; background: rgba(0, 0, 0, 0.82); border: 1px solid var(--accent); border-radius: 6px; padding: 3px 8px; outline: none; }
+
+.btn--icon { padding: 8px 9px; color: var(--muted); }
+.btn--icon svg { width: 16px; height: 16px; display: block; fill: none; stroke: currentColor; stroke-width: 1.7px; }
+.btn--icon.is-on { color: var(--accent); border-color: var(--accent); }
 .video--tile:hover { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent), 0 0 24px var(--accent-glow); }
 /* single-camera view */
 .single { max-width: 560px; display: grid; gap: 14px; }

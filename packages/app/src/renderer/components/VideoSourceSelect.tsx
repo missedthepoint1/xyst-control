@@ -6,8 +6,12 @@ export function VideoSourceSelect({ current, onChange, name }: {
 }) {
   const [devices, setDevices] = useState<MediaDeviceInfo[]>([]);
   useEffect(() => {
+    // Only real SDI/HDMI capture cards are valid sources — drop the Mac's built-in
+    // webcam, which is never a production feed. (Heuristic on label; the built-in
+    // reports as FaceTime/MacBook/Built-in.)
+    const isBuiltInWebcam = (label: string) => /(macbook|facetime|built[- ]?in)/i.test(label);
     navigator.mediaDevices?.enumerateDevices?.()
-      .then((ds) => setDevices(ds.filter((d) => d.kind === 'videoinput')))
+      .then((ds) => setDevices(ds.filter((d) => d.kind === 'videoinput' && !isBuiltInWebcam(d.label))))
       .catch(() => {});
   }, []);
   const value = current?.type === 'capture' ? `capture:${current.deviceId ?? ''}` : (current?.type ?? 'none');

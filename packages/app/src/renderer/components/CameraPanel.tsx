@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import type { ComponentProps } from 'react';
 import type { ControlState } from '@xyst/core';
 import type { CameraState } from '@xyst/core';
 import { RecButton } from './RecButton.js';
@@ -17,7 +18,14 @@ import { FocusPointBar } from './FocusPointBar.js';
 import { VideoSourceSelect } from './VideoSourceSelect.js';
 import { useApiBase } from '../hooks/useApiBase.js';
 
-export function CameraPanel({ state }: { state: CameraState }) {
+const STATUS_LABEL: Record<string, string> = {
+  connected: 'Connected', connecting: 'Connecting…', disconnected: 'Disconnected', error: 'Offline',
+};
+
+export function CameraPanel({ state, labels = true, onRename, dragHandleProps, dragItemProps, isOver }: {
+  state: CameraState; labels?: boolean; onRename?: (name: string) => void;
+  dragHandleProps?: ComponentProps<'button'>; dragItemProps?: ComponentProps<'section'>; isOver?: boolean;
+}) {
   const id = state.id;
   const set = (control: string, value: string | number) =>
     window.xyst.setControl(id, control, value);
@@ -31,6 +39,15 @@ export function CameraPanel({ state }: { state: CameraState }) {
   const [lastFocus, setLastFocus] = useState<{ x: number; y: number } | null>(null);
   const apiBase = useApiBase();
   const hasVideo = !!state.video && state.video.type !== 'none';
+  const label = state.name ?? state.model ?? id;
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState('');
+  const startEdit = () => { setDraft(state.name ?? state.model ?? ''); setEditing(true); };
+  const commitName = () => {
+    setEditing(false);
+    const v = draft.trim();
+    if (v && v !== (state.name ?? '') && onRename) onRename(v);
+  };
 
   // Camera-style OSD info rendered ON the live feed (built from discovered state).
   const n = (v: unknown) => (typeof v === 'number' ? v : undefined);
@@ -55,26 +72,43 @@ export function CameraPanel({ state }: { state: CameraState }) {
   };
 
   return (
-    <section className={`card panel${rec ? ' is-rec' : ''}`}>
-      <VideoSourceSelect current={state.video} name={state.model ?? state.name ?? id} onChange={(v) => window.xyst.setVideoSource(id, v)} />
+    <section className={`card panel${rec ? ' is-rec' : ''}${isOver ? ' is-drop' : ''}`} {...dragItemProps}>
+      <VideoSourceSelect current={state.video} name={label} onChange={(v) => window.xyst.setVideoSource(id, v)} />
       <VideoPanel cameraId={id} source={state.video} recording={rec} apiBase={apiBase} osd={osd} showOsd={showOsd} onFocus={(x, y) => setLastFocus({ x, y })} />
       {state.video && state.video.type !== 'none' && (
         <FocusPointBar cameraId={id} lastFocus={lastFocus} />
       )}
       <header className="panel__head">
-        <div>
-          <div className="panel__title">{state.model ?? state.name ?? id}</div>
-          <div className={`status status--${state.status}`}>
-            <span className="dot" />
-            {state.status}{state.lastError ? ` · ${state.lastError}` : ''}
-          </div>
-          {(state.record.remainingMinutes !== undefined || state.power?.volt !== undefined) && (
-            <div className="meta">
-              {state.record.remainingMinutes !== undefined && <span>⏺ {state.record.remainingMinutes} min</span>}
-              {state.record.media1 && <span>Card A: {state.record.media1 === 'recordable' ? 'ready' : '—'}</span>}
-              {state.power?.volt !== undefined && <span>{state.power.percent !== undefined ? `${state.power.percent}%` : `${state.power.volt}V`}</span>}
-            </div>
+        <div className="panel__head-left">
+          {dragHandleProps && (
+            <button type="button" className="drag-handle" title="Drag to reorder" {...dragHandleProps}>
+              <svg viewBox="0 0 16 16" aria-hidden="true" className="grip-ic">
+                <circle cx="5.5" cy="3.5" r="1.3" /><circle cx="10.5" cy="3.5" r="1.3" />
+                <circle cx="5.5" cy="8" r="1.3" /><circle cx="10.5" cy="8" r="1.3" />
+                <circle cx="5.5" cy="12.5" r="1.3" /><circle cx="10.5" cy="12.5" r="1.3" />
+              </svg>
+            </button>
           )}
+          <div className="panel__titlewrap">
+            {labels && (editing ? (
+              <input className="panel__title-edit" autoFocus value={draft}
+                onChange={(e) => setDraft(e.target.value)} onBlur={commitName}
+                onKeyDown={(e) => { if (e.key === 'Enter') commitName(); if (e.key === 'Escape') setEditing(false); }} />
+            ) : (
+              <div className="panel__title" title="Click to rename" onClick={startEdit}>{label}</div>
+            ))}
+            <div className={`status status--${state.status}`} title={state.lastError || undefined}>
+              <span className="dot" />
+              {STATUS_LABEL[state.status] ?? state.status}
+            </div>
+            {(state.record.remainingMinutes !== undefined || state.power?.volt !== undefined) && (
+              <div className="meta">
+                {state.record.remainingMinutes !== undefined && <span>⏺ {state.record.remainingMinutes} min</span>}
+                {state.record.media1 && <span>Card A: {state.record.media1 === 'recordable' ? 'ready' : '—'}</span>}
+                {state.power?.volt !== undefined && <span>{state.power.percent !== undefined ? `${state.power.percent}%` : `${state.power.volt}V`}</span>}
+              </div>
+            )}
+          </div>
         </div>
         <div className="panel__head-right">
           <button className="panel__remove" title="Remove camera" onClick={() => window.xyst.removeCamera(id)}>×</button>

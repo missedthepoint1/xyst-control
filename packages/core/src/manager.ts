@@ -5,6 +5,7 @@ import type { CameraDriver } from './driver.js';
 import type { CameraProfile, CameraState, ControlId, ControlSettings, CameraPreset, FocusPoint } from './types.js';
 import { XCProtocolDriver, type XCDriverOptions } from './xc/driver.js';
 import { R5CBrowserRemoteDriver } from './r5c/driver.js';
+import { CcapiDriver } from './ccapi/driver.js';
 
 interface ConfigFile { cameras: CameraProfile[] }
 
@@ -31,7 +32,12 @@ export class CameraManager extends EventEmitter {
 
   listProfiles(): CameraProfile[] { return [...this.profiles.values()]; }
   getState(id: string): CameraState | undefined { return this.drivers.get(id)?.getState(); }
-  getAllStates(): CameraState[] { return [...this.drivers.values()].map((d) => d.getState()); }
+  // Order follows the profile order (persisted), so rename/reorder are reflected everywhere.
+  getAllStates(): CameraState[] {
+    return this.listProfiles()
+      .map((p) => this.drivers.get(p.id)?.getState())
+      .filter((s): s is CameraState => !!s);
+  }
 
   async connect(id: string): Promise<void> { await this.driver(id).connect(); }
   async connectAll(): Promise<void> {
@@ -193,6 +199,28 @@ export class CameraManager extends EventEmitter {
     this.emit('state', cameraId, this.getState(cameraId)); // surface the change to the UI
   }
 
+  /** Relabel a camera (the user-facing name); persists and pushes the change to the UI. */
+  async renameCamera(cameraId: string, name: string): Promise<void> {
+    const profile = this.profiles.get(cameraId);
+    if (!profile) throw new Error(`no camera with id ${cameraId}`);
+    profile.name = name;
+    await this.save();
+    this.emit('state', cameraId, this.getState(cameraId));
+  }
+
+  /** Reorder cameras to match `orderedIds`; any ids omitted keep their current relative order. */
+  async reorderCameras(orderedIds: string[]): Promise<void> {
+    const current = this.profiles;
+    const next = new Map<string, CameraProfile>();
+    for (const id of orderedIds) {
+      const p = current.get(id);
+      if (p) next.set(id, p);
+    }
+    for (const [id, p] of current) if (!next.has(id)) next.set(id, p);
+    this.profiles = next;
+    await this.save();
+  }
+
   async removeCamera(cameraId: string): Promise<void> {
     const driver = this.drivers.get(cameraId);
     if (driver) {
@@ -220,8 +248,9 @@ export class CameraManager extends EventEmitter {
 
   private makeDriver(profile: CameraProfile): void {
     if (this.drivers.has(profile.id)) return;
-    const driver: CameraDriver = profile.driver === 'r5c'
-      ? new R5CBrowserRemoteDriver(profile)
+    const driver: CameraDriver =
+      profile.driver === 'r5c' ? new R5CBrowserRemoteDriver(profile)
+      : profile.driver === 'ccapi' ? new CcapiDriver(profile)
       : new XCProtocolDriver(profile, this.driverOpts);
     driver.on('state', (s) => this.emit('state', profile.id, s));
     driver.on('status', (st) => this.emit('status', profile.id, st));

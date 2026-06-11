@@ -72,7 +72,7 @@ export interface VideoSource { type: 'none' | 'protocol' | 'capture'; deviceId?:
 export interface CameraProfile {
   id: string;
   name: string;
-  driver: 'xc' | 'r5c';
+  driver: 'xc' | 'r5c' | 'ccapi';
   host: string;
   auth?: CameraAuth;
   presets?: CameraPreset[];

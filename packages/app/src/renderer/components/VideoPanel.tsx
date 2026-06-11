@@ -80,9 +80,24 @@ export function VideoPanel({ cameraId, source, recording, apiBase, name, osd, sh
   return (
     <>
     <div className={`video${recording ? ' video--rec' : ''}${onSelect ? ' video--tile' : ''}`} onClick={tap}>
-      {type === 'protocol' && <img ref={imgRef} className="video__img" alt="" />}
+      {type === 'protocol' && <img ref={imgRef} className="video__img" alt="" style={err ? { visibility: 'hidden' } : undefined} />}
       {type === 'capture' && <video ref={videoRef} className="video__img" autoPlay muted playsInline />}
-      {(type === 'none' || err) && <div className="video__placeholder">{type === 'none' ? 'No video source' : 'No signal'}</div>}
+      {(type === 'none' || err) && (
+        <div className="video__placeholder">
+          {type === 'none' ? (
+            <svg className="video__ph-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <rect x="2.5" y="5" width="19" height="14" rx="2.5" stroke="currentColor" strokeWidth="1.5" />
+              <circle cx="12" cy="12" r="3.2" stroke="currentColor" strokeWidth="1.5" />
+            </svg>
+          ) : (
+            <svg className="video__ph-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M4 13a11 11 0 0 1 16 0M7 16.5a6 6 0 0 1 10 0M10.5 19.6a1.5 1.5 0 0 1 3 0" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+              <line x1="3.6" y1="20.4" x2="20.4" y2="3.6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+            </svg>
+          )}
+          <span className="video__ph-text">{type === 'none' ? 'No video source' : 'No signal'}</span>
+        </div>
+      )}
       {mark && <span className="video__af" style={{ left: `${mark.x}%`, top: `${mark.y}%` }} />}
       {!onSelect && showOsd && boxes.map((b, i) => (
         <div key={i}

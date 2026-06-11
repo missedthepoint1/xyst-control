@@ -24,6 +24,8 @@ const api = {
     return () => ipcRenderer.off('camera:presets', h);
   },
   removeCamera: (id: string) => ipcRenderer.invoke('camera:remove', id),
+  renameCamera: (id: string, name: string) => ipcRenderer.invoke('camera:rename', id, name),
+  reorderCameras: (ids: string[]) => ipcRenderer.invoke('camera:reorder', ids),
   setVideoSource: (id: string, video: { type: string; deviceId?: string }) =>
     ipcRenderer.invoke('camera:setVideoSource', id, video),
   setFocusPoint: (id: string, x: number, y: number) => ipcRenderer.invoke('camera:setFocusPoint', id, x, y),
