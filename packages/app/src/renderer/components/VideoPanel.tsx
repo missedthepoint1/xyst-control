@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import type { VideoSource } from '@xyst/core';
+type DetectBox = { type: 'face' | 'eye' | 'object'; x: number; y: number; w: number; h: number; main: boolean; track: boolean };
 
 export function VideoPanel({ cameraId, source, recording, apiBase, name, onSelect }: {
   cameraId: string; source?: VideoSource; recording: boolean; apiBase: string;
@@ -10,6 +11,8 @@ export function VideoPanel({ cameraId, source, recording, apiBase, name, onSelec
   const videoRef = useRef<HTMLVideoElement>(null);
   const [err, setErr] = useState(false);
   const [mark, setMark] = useState<{ x: number; y: number } | null>(null);
+  const [boxes, setBoxes] = useState<DetectBox[]>([]);
+  const [showDetect, setShowDetect] = useState(true);
 
   useEffect(() => {
     if (type !== 'protocol' || !apiBase) return;
@@ -22,6 +25,20 @@ export function VideoPanel({ cameraId, source, recording, apiBase, name, onSelec
     load();
     return () => { stopped = true; if (timer) clearTimeout(timer); img.removeEventListener('load', onLoad); img.removeEventListener('error', onError); img.removeAttribute('src'); };
   }, [type, apiBase, cameraId]);
+
+  useEffect(() => {
+    if (type === 'none' || !apiBase || !showDetect) { setBoxes([]); return; }
+    let stopped = false; let timer: ReturnType<typeof setTimeout> | undefined;
+    const poll = async () => {
+      try {
+        const r = await fetch(`${apiBase}/api/cameras/${cameraId}/meta?t=${Date.now()}`);
+        if (r.ok) { const m = await r.json() as { detect?: DetectBox[] }; if (!stopped) setBoxes(m.detect ?? []); }
+      } catch { if (!stopped) setBoxes([]); }
+      if (!stopped) timer = setTimeout(poll, 150);
+    };
+    poll();
+    return () => { stopped = true; if (timer) clearTimeout(timer); };
+  }, [type, apiBase, cameraId, showDetect]);
 
   useEffect(() => {
     if (type !== 'capture' || !source?.deviceId) return;
@@ -59,6 +76,22 @@ export function VideoPanel({ cameraId, source, recording, apiBase, name, onSelec
       {type === 'capture' && <video ref={videoRef} className="video__img" autoPlay muted playsInline />}
       {(type === 'none' || err) && <div className="video__placeholder">{type === 'none' ? 'No video source' : 'No signal'}</div>}
       {mark && <span className="video__af" style={{ left: `${mark.x}%`, top: `${mark.y}%` }} />}
+      {!onSelect && boxes.map((b, i) => (
+        <div key={i}
+          className={`det det--${b.type}${b.track ? ' det--track' : ''}${b.main ? ' det--main' : ''}`}
+          style={{
+            left: `${(b.x / 9999 - (b.w / 10000) / 2) * 100}%`,
+            top: `${(b.y / 9999 - (b.h / 10000) / 2) * 100}%`,
+            width: `${(b.w / 10000) * 100}%`,
+            height: `${(b.h / 10000) * 100}%`,
+          }} />
+      ))}
+      {!onSelect && type !== 'none' && (
+        <button type="button" className="video__detbtn" title="Toggle face detection overlay"
+          onClick={(e) => { e.stopPropagation(); setShowDetect((s) => !s); }}>
+          {showDetect ? '◉ Faces' : '○ Faces'}
+        </button>
+      )}
       {recording && <span className="video__tally"><span className="video__dot" /> REC</span>}
       {name && <span className="video__name">{name}</span>}
     </div>

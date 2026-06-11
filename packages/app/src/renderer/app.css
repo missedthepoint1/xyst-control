@@ -218,3 +218,16 @@
 /* single-camera view */
 .single { max-width: 560px; display: grid; gap: 14px; }
 .single__back { justify-self: start; }
+
+/* detection overlay */
+.det { position: absolute; border: 2px solid rgba(255,255,255,0.9); border-radius: 4px;
+  box-shadow: 0 0 0 1px rgba(0,0,0,0.35); pointer-events: none; transition: left .08s linear, top .08s linear, width .08s linear, height .08s linear; }
+.det--face { border-color: rgba(255,255,255,0.92); }
+.det--main { border-color: #ffce5a; box-shadow: 0 0 0 1px rgba(0,0,0,0.35), 0 0 10px rgba(255,206,90,0.5); }
+.det--track { border-color: #34e0a1; box-shadow: 0 0 0 1px rgba(0,0,0,0.35), 0 0 12px rgba(52,224,161,0.6); }
+.det--eye { border-color: #36d6e7; border-radius: 50%; }
+.det--object { border-style: dashed; }
+.video__detbtn { position: absolute; top: 10px; right: 10px; z-index: 3; font-size: 11px; font-weight: 600;
+  color: var(--text); background: rgba(0,0,0,0.5); border: 1px solid var(--border); border-radius: 7px;
+  padding: 4px 9px; backdrop-filter: blur(6px); transition: border-color .15s; }
+.video__detbtn:hover { border-color: var(--accent); }
