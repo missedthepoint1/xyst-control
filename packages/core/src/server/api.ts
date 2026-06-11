@@ -3,7 +3,7 @@ import type { CameraManager } from '../manager.js';
 import type { CameraState, ControlId } from '../types.js';
 import { Router, type Ctx } from './router.js';
 
-const CONTROL_IDS: ControlId[] = ['iso', 'gain', 'shutter', 'shutterMode', 'shutterAngle', 'iris', 'wb', 'wbKelvin', 'nd', 'focus', 'faceDetect', 'colorbar'];
+const CONTROL_IDS: ControlId[] = ['iso', 'gain', 'shutter', 'shutterMode', 'shutterAngle', 'iris', 'wb', 'wbKelvin', 'nd', 'focus', 'faceDetect', 'colorbar', 'isoAuto', 'ndExtended', 'wbCC', 'awbHold', 'wbAction', 'afMode', 'afSpeed', 'afResponse', 'afLock', 'focusAction'];
 
 function statusSummary(s: CameraState) {
   const controls: Record<string, string | number | undefined> = {};

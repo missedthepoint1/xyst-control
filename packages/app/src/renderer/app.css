@@ -168,4 +168,23 @@
 .panel__remove { position: absolute; top: 12px; right: 12px; width: 26px; height: 26px; border-radius: 8px;
   display: grid; place-items: center; font-size: 17px; line-height: 1; color: var(--faint);
   background: transparent; transition: color .15s, background .15s; z-index: 2; }
+
+/* meta status line */
+.meta { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 6px; font-size: 11px; color: var(--faint); }
+.meta span { white-space: nowrap; }
+
+/* action buttons (focus / wb set) */
+.actions { display: flex; gap: 8px; }
+.act { flex: 1; padding: 8px 10px; border-radius: 9px; font-size: 12.5px; font-weight: 600;
+  color: var(--text); background: var(--glass-2); border: 1px solid var(--border);
+  transition: border-color .15s, background .15s, transform .1s; white-space: nowrap; }
+.act:hover { border-color: var(--accent); }
+.act:active { transform: scale(0.96); background: rgba(139, 123, 255, 0.14); }
+
+/* advanced disclosure */
+.advanced { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--border); }
+.advanced__toggle { color: var(--muted); font-size: 12px; font-weight: 600; letter-spacing: 0.4px;
+  text-transform: uppercase; padding: 2px 0; }
+.advanced__toggle:hover { color: var(--text); }
+.advanced__body { display: grid; gap: 12px; margin-top: 12px; }
 .panel__remove:hover { color: var(--rec); background: rgba(255, 56, 95, 0.12); }

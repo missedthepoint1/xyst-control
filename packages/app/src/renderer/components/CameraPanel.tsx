@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import type { ControlState } from '@xyst/core';
 import type { CameraState } from '@xyst/core';
 import { RecButton } from './RecButton.js';
@@ -7,6 +8,8 @@ import { IrisControl } from './controls/IrisControl.js';
 import { WbControl } from './controls/WbControl.js';
 import { NdControl } from './controls/NdControl.js';
 import { ControlSegment } from './controls/ControlSegment.js';
+import { RangeStepper } from './controls/RangeStepper.js';
+import { FocusActions } from './controls/FocusActions.js';
 import { usePresets } from '../hooks/usePresets.js';
 import { PresetBar } from './PresetBar.js';
 
@@ -19,6 +22,7 @@ export function CameraPanel({ state }: { state: CameraState }) {
     (ctl?.list ?? []).map((v) => ({ value: v, label: labels[String(v)] ?? String(v) }));
   const { presets } = usePresets(state.id);
   const rec = state.record.recording;
+  const [advanced, setAdvanced] = useState(false);
 
   return (
     <section className={`card panel${rec ? ' is-rec' : ''}`}>
@@ -30,12 +34,24 @@ export function CameraPanel({ state }: { state: CameraState }) {
             <span className="dot" />
             {state.status}{state.lastError ? ` · ${state.lastError}` : ''}
           </div>
+          {(state.record.remainingMinutes !== undefined || state.power?.volt !== undefined) && (
+            <div className="meta">
+              {state.record.remainingMinutes !== undefined && <span>⏺ {state.record.remainingMinutes} min</span>}
+              {state.record.media1 && <span>Card A: {state.record.media1 === 'recordable' ? 'ready' : '—'}</span>}
+              {state.power?.volt !== undefined && <span>{state.power.percent !== undefined ? `${state.power.percent}%` : `${state.power.volt}V`}</span>}
+            </div>
+          )}
         </div>
         <RecButton recording={rec} onToggle={() => window.xyst.record(id, !rec)} />
       </header>
 
       <div className="controls">
         {c.iso?.available && <IsoControl c={c.iso} onSet={(v) => set('iso', v)} />}
+        {c.isoAuto?.available && (
+          <ControlSegment label="ISO mode" value={c.isoAuto.value}
+            options={segOpts(c.isoAuto, { auto: 'Auto', manual: 'Manual' })}
+            onChange={(v) => set('isoAuto', v)} />
+        )}
         {c.shutter?.available && (
           <ShutterControl shutter={c.shutter} angle={c.shutterAngle}
             onSetMode={(m) => set('shutterMode', m)}
@@ -49,10 +65,20 @@ export function CameraPanel({ state }: { state: CameraState }) {
             onSetWb={(v) => set('wb', v)} onSetKelvin={(v) => set('wbKelvin', v)}
           />
         )}
+        {c.wbCC?.available && (
+          <RangeStepper label="WB CC" value={typeof c.wbCC.value === 'number' ? c.wbCC.value : undefined}
+            min={c.wbCC.min ?? -20} max={c.wbCC.max ?? 20}
+            format={(n) => (n > 0 ? `+${n}` : String(n))} onChange={(v) => set('wbCC', v)} />
+        )}
         {c.nd?.available && <NdControl c={c.nd} onSet={(v) => set('nd', v)} />}
+        {c.ndExtended?.available && (
+          <ControlSegment label="ND adv" value={c.ndExtended.value}
+            options={segOpts(c.ndExtended, { off: 'Off', on: 'On' })}
+            onChange={(v) => set('ndExtended', v)} />
+        )}
       </div>
 
-      {(c.focus?.available || c.faceDetect?.available || c.colorbar?.available) && (
+      {(c.focus?.available || c.faceDetect?.available || c.colorbar?.available || c.focusAction?.available) && (
         <div className="switches">
           {c.focus?.available && (
             <ControlSegment label="Focus" value={c.focus.value}
@@ -68,6 +94,53 @@ export function CameraPanel({ state }: { state: CameraState }) {
             <ControlSegment label="Bars" value={c.colorbar.value}
               options={segOpts(c.colorbar, { off: 'Off', on: 'On' })}
               onChange={(v) => set('colorbar', v)} />
+          )}
+          {c.focusAction?.available && (
+            <FocusActions actions={c.focusAction.list ?? []} onAction={(a) => set('focusAction', a)} />
+          )}
+        </div>
+      )}
+
+      {(c.afMode?.available || c.afSpeed?.available || c.afResponse?.available || c.afLock?.available || c.awbHold?.available || c.wbAction?.available) && (
+        <div className="advanced">
+          <button type="button" className="advanced__toggle" onClick={() => setAdvanced((a) => !a)}>
+            {advanced ? '▾' : '▸'} Advanced
+          </button>
+          {advanced && (
+            <div className="advanced__body">
+              {c.afMode?.available && (
+                <ControlSegment label="AF mode" value={c.afMode.value}
+                  options={segOpts(c.afMode, { continuous: 'Continuous', afboosted: 'Boosted' })}
+                  onChange={(v) => set('afMode', v)} />
+              )}
+              {c.afSpeed?.available && (
+                <RangeStepper label="AF speed" value={typeof c.afSpeed.value === 'number' ? c.afSpeed.value : undefined}
+                  min={c.afSpeed.min ?? -7} max={c.afSpeed.max ?? 2} onChange={(v) => set('afSpeed', v)} />
+              )}
+              {c.afResponse?.available && (
+                <RangeStepper label="AF resp" value={typeof c.afResponse.value === 'number' ? c.afResponse.value : undefined}
+                  min={c.afResponse.min ?? -3} max={c.afResponse.max ?? 3} onChange={(v) => set('afResponse', v)} />
+              )}
+              {c.afLock?.available && (
+                <ControlSegment label="AF lock" value={c.afLock.value}
+                  options={segOpts(c.afLock, { off: 'Off', on: 'On' })}
+                  onChange={(v) => set('afLock', v)} />
+              )}
+              {c.awbHold?.available && (
+                <ControlSegment label="AWB hold" value={c.awbHold.value}
+                  options={segOpts(c.awbHold, { off: 'Off', on: 'On' })}
+                  onChange={(v) => set('awbHold', v)} />
+              )}
+              {c.wbAction?.available && (
+                <label className="ctl">
+                  <span className="ctl__label">Set WB</span>
+                  <div className="actions">
+                    <button type="button" className="act" onClick={() => set('wbAction', 'one_shot_a')}>Set A</button>
+                    <button type="button" className="act" onClick={() => set('wbAction', 'one_shot_b')}>Set B</button>
+                  </div>
+                </label>
+              )}
+            </div>
           )}
         </div>
       )}
