@@ -42,6 +42,21 @@ describe('interpretInfo', () => {
     expect(snap.controls.iris?.list).toContain(1100); // f/11
   });
 
+  it('reads the multi-cam control params and power', () => {
+    expect(snap.controls.isoAuto?.value).toBe('manual');
+    expect(snap.controls.ndExtended?.value).toBe('off');
+    expect(snap.controls.wbCC?.min).toBe(-20);
+    expect(snap.controls.awbHold?.value).toBe('off');
+    expect(snap.controls.wbAction?.list).toEqual(['one_shot_a', 'one_shot_b']);
+    expect(snap.controls.afMode?.value).toBe('continuous');
+    expect(snap.controls.afSpeed?.max).toBe(2);
+    expect(snap.controls.afResponse?.min).toBe(-3);
+    expect(snap.controls.afLock?.value).toBe('off');
+    expect(snap.controls.focusAction?.list).toContain('one_shot');
+    expect(snap.power?.source).toBe('battery');
+    expect(snap.power?.volt).toBe(14);
+  });
+
   it('marks a control unavailable when the camera did not advertise it', () => {
     const snap2 = interpretInfo({ 'c.1.type': 'X', 'f.rec.status': 'rec' });
     expect(snap2.controls.iso).toBeUndefined();

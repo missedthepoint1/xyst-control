@@ -47,6 +47,26 @@ export function buildControlParams(id: ControlId, value: string | number): Recor
       return { 'c.1.focus.detect': v };
     case 'colorbar':
       return { 'c.1.colorbar': v };
+    case 'isoAuto':
+      return { 'c.1.me.iso.mode': v };
+    case 'ndExtended':
+      return { 'c.1.nd.filter.extended': v };
+    case 'wbCC':
+      return { 'c.1.wb.kelvin.cc': v };
+    case 'awbHold':
+      return { 'c.1.wb.awbhold': v };
+    case 'wbAction':
+      return { 'c.1.wb.action': v };
+    case 'afMode':
+      return { 'c.1.focus.auto': v };
+    case 'afSpeed':
+      return { 'c.1.focus.auto.speed': v };
+    case 'afResponse':
+      return { 'c.1.focus.auto.resp': v };
+    case 'afLock':
+      return { 'c.1.focus.auto.lock': v };
+    case 'focusAction':
+      return { 'c.1.focus.action': v };
   }
 }
 

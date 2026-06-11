@@ -76,6 +76,30 @@ describe('buildControlParams', () => {
   it('colorbar toggles color bars', () => {
     expect(buildControlParams('colorbar', 'on')).toEqual({ 'c.1.colorbar': 'on' });
   });
+  it('isoAuto sets ISO auto/manual mode', () => {
+    expect(buildControlParams('isoAuto', 'auto')).toEqual({ 'c.1.me.iso.mode': 'auto' });
+  });
+  it('ndExtended toggles the extended ND range', () => {
+    expect(buildControlParams('ndExtended', 'on')).toEqual({ 'c.1.nd.filter.extended': 'on' });
+  });
+  it('wbCC sets color compensation', () => {
+    expect(buildControlParams('wbCC', -5)).toEqual({ 'c.1.wb.kelvin.cc': '-5' });
+  });
+  it('awbHold toggles AWB hold', () => {
+    expect(buildControlParams('awbHold', 'on')).toEqual({ 'c.1.wb.awbhold': 'on' });
+  });
+  it('wbAction triggers a one-shot AWB set', () => {
+    expect(buildControlParams('wbAction', 'one_shot_a')).toEqual({ 'c.1.wb.action': 'one_shot_a' });
+  });
+  it('afMode/afSpeed/afResponse/afLock map to focus.auto params', () => {
+    expect(buildControlParams('afMode', 'afboosted')).toEqual({ 'c.1.focus.auto': 'afboosted' });
+    expect(buildControlParams('afSpeed', 2)).toEqual({ 'c.1.focus.auto.speed': '2' });
+    expect(buildControlParams('afResponse', -1)).toEqual({ 'c.1.focus.auto.resp': '-1' });
+    expect(buildControlParams('afLock', 'on')).toEqual({ 'c.1.focus.auto.lock': 'on' });
+  });
+  it('focusAction triggers a focus action (one-shot AF / MF push)', () => {
+    expect(buildControlParams('focusAction', 'one_shot')).toEqual({ 'c.1.focus.action': 'one_shot' });
+  });
 });
 
 describe('buildSettingsParams', () => {

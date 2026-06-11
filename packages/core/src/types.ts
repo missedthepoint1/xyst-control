@@ -3,7 +3,8 @@ export type ConnectionStatus = 'disconnected' | 'connecting' | 'connected' | 'er
 export type ControlId =
   | 'iso' | 'gain' | 'shutter' | 'shutterMode' | 'shutterAngle'
   | 'iris' | 'wb' | 'wbKelvin' | 'nd'
-  | 'focus' | 'faceDetect' | 'colorbar';
+  | 'focus' | 'faceDetect' | 'colorbar'
+  | 'isoAuto' | 'ndExtended' | 'wbCC' | 'awbHold' | 'wbAction' | 'afMode' | 'afSpeed' | 'afResponse' | 'afLock' | 'focusAction';
 
 /** A single discovered control: what it currently is + what values are valid. */
 export interface ControlState {
@@ -29,12 +30,20 @@ export interface RecordState {
   remainingMinutes?: number;
 }
 
+export interface PowerState {
+  source?: string;   // 'battery' | 'ac' | ...
+  volt?: number;     // volts (e.g. 14.0)
+  percent?: number;  // 0..100, if the battery reports it
+  minutes?: number;  // remaining, if reported
+}
+
 /** The interpreted result of one info.cgi read. */
 export interface CameraSnapshot {
   model?: string;
   exposureMode?: string; // c.1.exp
   record: RecordState;
   controls: Partial<Record<ControlId, ControlState>>;
+  power?: PowerState;
 }
 
 /** The full externally-visible state of a camera. */

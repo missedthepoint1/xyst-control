@@ -1,4 +1,4 @@
-import type { CameraSnapshot, ControlState, ControlId } from '../types.js';
+import type { CameraSnapshot, ControlState, ControlId, PowerState } from '../types.js';
 
 type Map = Record<string, string>;
 
@@ -123,6 +123,44 @@ export function interpretInfo(map: Map): CameraSnapshot {
       list: list(map['c.1.colorbar.list']),
     };
   }
+  if ('c.1.me.iso.mode' in map) {
+    controls.isoAuto = { id: 'isoAuto', available: true, value: map['c.1.me.iso.mode'], list: list(map['c.1.me.iso.mode.list']) };
+  }
+  if ('c.1.nd.filter.extended' in map) {
+    controls.ndExtended = { id: 'ndExtended', available: true, value: map['c.1.nd.filter.extended'], list: list(map['c.1.nd.filter.extended.list']) };
+  }
+  if ('c.1.wb.kelvin.cc' in map) {
+    controls.wbCC = { id: 'wbCC', available: true, value: num(map['c.1.wb.kelvin.cc']), min: num(map['c.1.wb.kelvin.cc.min']), max: num(map['c.1.wb.kelvin.cc.max']) };
+  }
+  if ('c.1.wb.awbhold' in map) {
+    controls.awbHold = { id: 'awbHold', available: true, value: map['c.1.wb.awbhold'], list: list(map['c.1.wb.awbhold.list']) };
+  }
+  if ('c.1.wb.action.list' in map) {
+    controls.wbAction = { id: 'wbAction', available: true, list: list(map['c.1.wb.action.list']) };
+  }
+  if ('c.1.focus.auto' in map) {
+    controls.afMode = { id: 'afMode', available: true, value: map['c.1.focus.auto'], list: list(map['c.1.focus.auto.list']) };
+  }
+  if ('c.1.focus.auto.speed' in map) {
+    controls.afSpeed = { id: 'afSpeed', available: true, value: num(map['c.1.focus.auto.speed']), min: num(map['c.1.focus.auto.speed.min']), max: num(map['c.1.focus.auto.speed.max']) };
+  }
+  if ('c.1.focus.auto.resp' in map) {
+    controls.afResponse = { id: 'afResponse', available: true, value: num(map['c.1.focus.auto.resp']), min: num(map['c.1.focus.auto.resp.min']), max: num(map['c.1.focus.auto.resp.max']) };
+  }
+  if ('c.1.focus.auto.lock' in map) {
+    controls.afLock = { id: 'afLock', available: true, value: map['c.1.focus.auto.lock'], list: list(map['c.1.focus.auto.lock.list']) };
+  }
+  if ('c.1.focus.action.list' in map) {
+    controls.focusAction = { id: 'focusAction', available: true, list: list(map['c.1.focus.action.list']) };
+  }
+
+  const power: PowerState = {
+    source: map['s.power.source'] || undefined,
+    volt: map['s.power.volt'] ? Number(map['s.power.volt']) / 10 : undefined,
+    percent: map['s.power.percent'] ? num(map['s.power.percent']) : undefined,
+    minutes: map['s.power.minute'] ? num(map['s.power.minute']) : undefined,
+  };
+  const hasPower = power.source !== undefined || power.volt !== undefined;
 
   return {
     model: map['c.1.type'],
@@ -134,5 +172,6 @@ export function interpretInfo(map: Map): CameraSnapshot {
       remainingMinutes: num(map['f.rec.media1.remainingtime']),
     },
     controls,
+    power: hasPower ? power : undefined,
   };
 }
