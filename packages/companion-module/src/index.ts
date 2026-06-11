@@ -1,11 +1,13 @@
 import { InstanceBase, InstanceStatus, runEntrypoint } from '@companion-module/base';
-import type { CameraState } from '@xyst/core';
+import type { CameraPreset, CameraState, FocusPoint } from '@xyst/core';
 import { type XystConfig, getConfigFields, baseUrl } from './config.js';
 import { XystApiClient } from './api.js';
 import { CameraStore } from './state.js';
 import { subscribeEvents, type SseHandle } from './sse.js';
 import { buildActions } from './actions.js';
 import { buildFeedbacks } from './feedbacks.js';
+
+const FEEDBACK_IDS = ['recording', 'recording_any', 'connected', 'control_equals'] as const;
 
 class ModuleInstance extends InstanceBase<XystConfig> {
   private store = new CameraStore();
@@ -32,7 +34,12 @@ class ModuleInstance extends InstanceBase<XystConfig> {
     this.updateStatus(InstanceStatus.Connecting);
     this.api = new XystApiClient(baseUrl(this.cfg));
     try {
-      this.store.setCameras(await this.api.getCameras());
+      const cameras = await this.api.getCameras();
+      this.store.setCameras(cameras);
+      // Presets aren't part of camera state — fetch them so the recall dropdown is populated.
+      await Promise.all(cameras.map(async (c) => {
+        try { this.store.setPresets(c.id, await this.api.listPresets(c.id)); } catch { /* best-effort */ }
+      }));
       this.updateStatus(InstanceStatus.Ok);
     } catch {
       this.updateStatus(InstanceStatus.ConnectionFailure, 'Cannot reach the XYST app API');
@@ -46,14 +53,23 @@ class ModuleInstance extends InstanceBase<XystConfig> {
 
   private onEvent(event: string, data: string): void {
     try {
-      const payload = JSON.parse(data) as { cameraId?: string; state?: CameraState };
-      if (event === 'state' && payload.cameraId && payload.state) {
-        this.store.applyState(payload.cameraId, payload.state);
+      const p = JSON.parse(data) as {
+        cameraId?: string; state?: CameraState; presets?: CameraPreset[]; focusPoints?: FocusPoint[];
+      };
+      if (event === 'state' && p.cameraId && p.state) {
+        this.store.applyState(p.cameraId, p.state);
         this.updateStatus(InstanceStatus.Ok);
         this.pushVariableValues();
-        this.checkFeedbacks('recording');
+        this.checkFeedbacks(...FEEDBACK_IDS);
       } else if (event === 'status') {
         this.updateStatus(InstanceStatus.Ok);
+        this.checkFeedbacks('connected');
+      } else if (event === 'presets' && p.cameraId && p.presets) {
+        this.store.setPresets(p.cameraId, p.presets);
+        this.refreshDefinitions(); // preset dropdown choices changed
+      } else if (event === 'focusPoints' && p.cameraId && p.focusPoints) {
+        this.store.setFocusPoints(p.cameraId, p.focusPoints);
+        this.refreshDefinitions(); // focus-point dropdown choices changed
       }
     } catch { /* ignore malformed */ }
   }

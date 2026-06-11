@@ -40,6 +40,15 @@ export function createApiServer(mgr: CameraManager, _opts: ApiServerOptions = {}
     return ok();
   });
 
+  router.add('POST', '/api/cameras/:id/controls/:control/step', async ({ params, body }) => {
+    const control = params.control as ControlId;
+    if (!CONTROL_IDS.includes(control)) throw new HttpError(400, `unknown control ${control}`);
+    const dir = (body as { dir?: number })?.dir ?? 1;
+    if (dir !== 1 && dir !== -1) throw new HttpError(400, 'body.dir must be 1 or -1');
+    await mgr.stepControl(params.id!, control, dir);
+    return ok();
+  });
+
   router.add('GET', '/api/cameras/:id/presets', ({ params }) => {
     required(mgr.getState(params.id!));
     return mgr.listPresets(params.id!);

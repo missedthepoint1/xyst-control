@@ -46,6 +46,28 @@ export class CameraManager extends EventEmitter {
   async setControl(id: string, control: ControlId, value: string | number): Promise<void> {
     await this.driver(id).setControl(control, value);
   }
+
+  /**
+   * Move a control to its next/previous valid value (dir = +1 / -1). List-aware for
+   * stepped controls (ISO, shutter, iris, ND, Kelvin…) and clamped for ranged ones
+   * (WB CC, AF speed/response). Lives here so REST + Companion never re-implement it.
+   */
+  async stepControl(id: string, control: ControlId, dir: 1 | -1): Promise<void> {
+    const state = this.getState(id);
+    if (!state) throw new Error(`no camera with id ${id}`);
+    const c = state.controls[control];
+    if (!c || c.available === false) throw new Error(`control ${control} not available`);
+    let next: string | number | undefined;
+    if (c.list && c.list.length) {
+      const i = c.list.findIndex((v) => String(v) === String(c.value));
+      next = c.list[Math.max(0, Math.min(c.list.length - 1, (i < 0 ? 0 : i) + dir))];
+    } else if (typeof c.value === 'number') {
+      const min = c.min ?? Number.NEGATIVE_INFINITY, max = c.max ?? Number.POSITIVE_INFINITY;
+      next = Math.max(min, Math.min(max, c.value + dir));
+    }
+    if (next === undefined) throw new Error(`control ${control} is not steppable`);
+    await this.setControl(id, control, next);
+  }
   async recordAll(start: boolean): Promise<void> {
     await Promise.allSettled([...this.drivers.values()].map(
       (d) => (start ? d.startRecording() : d.stopRecording())));

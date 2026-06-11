@@ -40,6 +40,20 @@ describe('CameraManager', () => {
     expect(mgr.getState('cam-1')?.controls.nd?.value).toBe(1600);
   });
 
+  it('stepControl moves through the discovered value list', async () => {
+    cam = new FakeCamera();
+    const host = await cam.listen();
+    mgr = new CameraManager(configWith(host), { pollMs: 50 });
+    await mgr.load();
+    await mgr.connect('cam-1');
+    expect(mgr.getState('cam-1')?.controls.iso?.value).toBe(800); // fixture ISO, list …640,800,1000…
+    await mgr.stepControl('cam-1', 'iso', 1);
+    expect(mgr.getState('cam-1')?.controls.iso?.value).toBe(1000);
+    await mgr.stepControl('cam-1', 'iso', -1);
+    await mgr.stepControl('cam-1', 'iso', -1);
+    expect(mgr.getState('cam-1')?.controls.iso?.value).toBe(640);
+  });
+
   it('re-emits state events tagged with camera id', async () => {
     cam = new FakeCamera();
     const host = await cam.listen();
