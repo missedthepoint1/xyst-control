@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
 import type { VideoSource } from '@xyst/core';
-import { AudioMeter } from './AudioMeter.js';
 type DetectBox = { type: 'face' | 'eye' | 'object'; x: number; y: number; w: number; h: number; main: boolean; track: boolean };
 type Guide = { status: boolean; level: number; angle: number; dir: string; x: number; y: number; w: number; h: number };
 export type OsdInfo = {
@@ -8,10 +7,9 @@ export type OsdInfo = {
   rec: boolean; remaining?: number; battery?: string;
 };
 
-export function VideoPanel({ cameraId, source, recording, apiBase, name, osd, showOsd = true, audioDeviceId, onSelect, onFocus }: {
+export function VideoPanel({ cameraId, source, recording, apiBase, name, osd, showOsd = true, onSelect, onFocus }: {
   cameraId: string; source?: VideoSource; recording: boolean; apiBase: string;
-  name?: string; osd?: OsdInfo; showOsd?: boolean; audioDeviceId?: string;
-  onSelect?: () => void; onFocus?: (x: number, y: number) => void;
+  name?: string; osd?: OsdInfo; showOsd?: boolean; onSelect?: () => void; onFocus?: (x: number, y: number) => void;
 }) {
   const type = source?.type ?? 'none';
   const imgRef = useRef<HTMLImageElement>(null);
@@ -122,7 +120,6 @@ export function VideoPanel({ cameraId, source, recording, apiBase, name, osd, sh
       )}
       {recording && (onSelect || !osd || !showOsd) && <span className="video__tally"><span className="video__dot" /> REC</span>}
       {name && (onSelect || showOsd) && <span className="video__name">{name}</span>}
-      {!onSelect && <AudioMeter deviceId={audioDeviceId} />}
     </div>
     </>
   );

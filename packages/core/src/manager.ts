@@ -171,14 +171,6 @@ export class CameraManager extends EventEmitter {
     this.emit('state', cameraId, this.getState(cameraId)); // surface the change to the UI
   }
 
-  async setAudioSource(cameraId: string, audio: import('./types.js').AudioSource): Promise<void> {
-    const profile = this.profiles.get(cameraId);
-    if (!profile) throw new Error(`no camera with id ${cameraId}`);
-    profile.audio = audio;
-    await this.save();
-    this.emit('state', cameraId, this.getState(cameraId));
-  }
-
   async removeCamera(cameraId: string): Promise<void> {
     const driver = this.drivers.get(cameraId);
     if (driver) {

@@ -15,7 +15,6 @@ import { PresetBar } from './PresetBar.js';
 import { VideoPanel } from './VideoPanel.js';
 import { FocusPointBar } from './FocusPointBar.js';
 import { VideoSourceSelect } from './VideoSourceSelect.js';
-import { AudioSourceSelect } from './AudioSourceSelect.js';
 import { useApiBase } from '../hooks/useApiBase.js';
 
 export function CameraPanel({ state }: { state: CameraState }) {
@@ -29,7 +28,6 @@ export function CameraPanel({ state }: { state: CameraState }) {
   const rec = state.record.recording;
   const [advanced, setAdvanced] = useState(false);
   const [showOsd, setShowOsd] = useState(true);
-  const [showAudio, setShowAudio] = useState(false);
   const [lastFocus, setLastFocus] = useState<{ x: number; y: number } | null>(null);
   const apiBase = useApiBase();
   const hasVideo = !!state.video && state.video.type !== 'none';
@@ -59,11 +57,7 @@ export function CameraPanel({ state }: { state: CameraState }) {
   return (
     <section className={`card panel${rec ? ' is-rec' : ''}`}>
       <VideoSourceSelect current={state.video} name={state.model ?? state.name ?? id} onChange={(v) => window.xyst.setVideoSource(id, v)} />
-      {showAudio && (
-        <AudioSourceSelect deviceId={state.audio?.deviceId} onChange={(deviceId) => window.xyst.setAudioSource(id, { deviceId })} />
-      )}
-      <VideoPanel cameraId={id} source={state.video} recording={rec} apiBase={apiBase} osd={osd} showOsd={showOsd}
-        audioDeviceId={showAudio ? state.audio?.deviceId : undefined} onFocus={(x, y) => setLastFocus({ x, y })} />
+      <VideoPanel cameraId={id} source={state.video} recording={rec} apiBase={apiBase} osd={osd} showOsd={showOsd} onFocus={(x, y) => setLastFocus({ x, y })} />
       {state.video && state.video.type !== 'none' && (
         <FocusPointBar cameraId={id} lastFocus={lastFocus} />
       )}
@@ -85,13 +79,6 @@ export function CameraPanel({ state }: { state: CameraState }) {
         <div className="panel__head-right">
           <button className="panel__remove" title="Remove camera" onClick={() => window.xyst.removeCamera(id)}>×</button>
           <div className="head-actions">
-            {hasVideo && (
-              <button type="button" className={`osd-btn${showAudio ? ' is-on' : ''}`}
-                title="Audio level meters (from the SDI/HDMI capture or a selected audio input)"
-                onClick={() => setShowAudio((s) => !s)}>
-                <span className="ic" /> VU
-              </button>
-            )}
             {hasVideo && (
               <button type="button" className={`osd-btn${showOsd ? ' is-on' : ''}`}
                 title="Show camera info, face/eye boxes and focus guide on the live view"

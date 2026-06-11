@@ -245,15 +245,6 @@
 .osd-btn .ic { width: 12px; height: 12px; border-radius: 50%; background: var(--faint); transition: background .2s, box-shadow .2s; }
 .osd-btn.is-on { background: var(--accent-grad); border-color: transparent; color: #0b0a16; box-shadow: 0 0 24px var(--accent-glow); }
 .osd-btn.is-on .ic { background: #0b0a16; box-shadow: none; }
-/* audio level meters (L/R), overlaid on the right edge of the live view */
-.ameter { position: absolute; top: 12px; bottom: 30px; right: 12px; display: flex; gap: 4px; z-index: 3; pointer-events: none; }
-.ameter__ch { position: relative; width: 6px; border-radius: 3px; overflow: hidden;
-  background: linear-gradient(0deg, #2bd49a 0%, #34e0a1 55%, #ffce5a 80%, #ff385f 100%);
-  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.45); }
-.ameter__mask { position: absolute; inset: 0; transform-origin: top; background: rgba(2, 4, 10, 0.82);
-  will-change: transform; }
-.ameter__peak { position: absolute; left: 0; right: 0; height: 2px; background: #fff; box-shadow: 0 0 4px rgba(255, 255, 255, 0.7); }
-.ameter__err { color: var(--faint); font-size: 10px; writing-mode: vertical-rl; background: rgba(0, 0, 0, 0.5); padding: 4px 2px; border-radius: 5px; }
 /* MF focus guide */
 .fguide { position: absolute; border: 2px solid #ffce5a; border-radius: 6px; pointer-events: none;
   box-shadow: 0 0 12px rgba(255,206,90,0.5); display: grid; place-items: end center; transition: all .1s linear; }

@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, session } from 'electron';
+import { app, BrowserWindow, ipcMain } from 'electron';
 import { join } from 'node:path';
 import { CameraManager, createApiServer } from '@xyst/core';
 import { resolveConfigPath } from './config-path.js';
@@ -17,8 +17,6 @@ async function createWindow(): Promise<void> {
 }
 
 app.whenReady().then(async () => {
-  // Grant camera/mic so capture-card video and audio-meter input work (local trusted app).
-  session.defaultSession.setPermissionRequestHandler((_wc, permission, cb) => cb(permission === 'media'));
   const mgr = new CameraManager(resolveConfigPath());
   await mgr.load();
   registerIpc(mgr, () => win);

@@ -55,7 +55,6 @@ export interface CameraState extends CameraSnapshot {
   updatedAt: number;
   lastError?: string;
   video?: VideoSource;
-  audio?: AudioSource;
   focusPoints?: FocusPoint[];
 }
 
@@ -70,10 +69,6 @@ export interface PreviewFrame { data: Uint8Array; contentType: string; }
 /** Per-camera video source for the live-view panel (decoupled from control). */
 export interface VideoSource { type: 'none' | 'protocol' | 'capture'; deviceId?: string; }
 
-/** Per-camera audio input for the meters (embedded SDI/HDMI audio or any input). The
- * XC protocol carries no audio levels, so this is metered in the app via Web Audio. */
-export interface AudioSource { deviceId?: string; }
-
 export interface CameraProfile {
   id: string;
   name: string;
@@ -83,7 +78,6 @@ export interface CameraProfile {
   presets?: CameraPreset[];
   focusPoints?: FocusPoint[];
   video?: VideoSource;
-  audio?: AudioSource;
 }
 
 /** A set of control values to apply together (preset payload / bulk apply). */
