@@ -23,6 +23,12 @@ const api = {
     ipcRenderer.on('camera:presets', h);
     return () => ipcRenderer.off('camera:presets', h);
   },
+  removeCamera: (id: string) => ipcRenderer.invoke('camera:remove', id),
+  onRemoved: (cb: (id: string) => void) => {
+    const h = (_e: unknown, id: string) => cb(id);
+    ipcRenderer.on('camera:removed', h);
+    return () => ipcRenderer.off('camera:removed', h);
+  },
 };
 
 contextBridge.exposeInMainWorld('xyst', api);

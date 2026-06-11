@@ -3,7 +3,7 @@ import type { CameraManager } from '../manager.js';
 import type { CameraState, ControlId } from '../types.js';
 import { Router, type Ctx } from './router.js';
 
-const CONTROL_IDS: ControlId[] = ['iso', 'gain', 'shutter', 'iris', 'wb', 'wbKelvin', 'nd'];
+const CONTROL_IDS: ControlId[] = ['iso', 'gain', 'shutter', 'shutterMode', 'shutterAngle', 'iris', 'wb', 'wbKelvin', 'nd', 'focus', 'faceDetect', 'colorbar'];
 
 function statusSummary(s: CameraState) {
   const controls: Record<string, string | number | undefined> = {};
@@ -55,6 +55,7 @@ export function createApiServer(mgr: CameraManager, _opts: ApiServerOptions = {}
     mgr.recallPresetById(params.presetId!).then(ok));
   router.add('DELETE', '/api/cameras/:id/presets/:presetId', ({ params }) =>
     mgr.deletePreset(params.id!, params.presetId!).then(ok));
+  router.add('DELETE', '/api/cameras/:id', ({ params }) => mgr.removeCamera(params.id!).then(ok));
 
   router.add('GET', '/api/events', ({ req, res }) => {
     res.writeHead(200, {

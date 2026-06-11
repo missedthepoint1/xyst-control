@@ -13,7 +13,9 @@ export function useCameras() {
     void refresh();
     const off = window.xyst.onState((id, state) =>
       setStates((prev) => ({ ...prev, [id]: state as CameraState })));
-    return () => { off(); };
+    const offRemoved = window.xyst.onRemoved((id) =>
+      setStates((prev) => { const n = { ...prev }; delete n[id]; return n; }));
+    return () => { off(); offRemoved(); };
   }, [refresh]);
 
   return { states: Object.values(states), refresh };
