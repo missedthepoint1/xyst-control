@@ -29,7 +29,8 @@ export function buildControlParams(id: ControlId, value: string | number): Recor
       // Phase 1: concrete speed only; slow/clearscan/angle modes are a later refinement.
       return { 'c.1.exp': 'manual', 'c.1.me.shutter.mode': 'speed', 'c.1.me.shutter': v };
     case 'iris':
-      return { 'c.1.exp': 'manual', 'c.1.me.iris': v };
+      // Lens aperture by F-number (x100, e.g. 400 = f/4).
+      return { 'c.1.exp': 'manual', 'c.1.me.diaphragm': v };
     case 'wb':
       return { 'c.1.wb': v };
     case 'wbKelvin':

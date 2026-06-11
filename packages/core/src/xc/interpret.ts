@@ -51,14 +51,17 @@ export function interpretInfo(map: Map): CameraSnapshot {
       modeList: list(map['c.1.me.shutter.mode.list'])?.map(String),
     };
   }
-  // Iris is offered only when the body+lens advertise a usable range.
-  if ('c.1.me.iris' in map && map['c.1.me.iris.min'] !== undefined) {
+  // Iris uses the lens aperture (F-number x100, e.g. 400 = f/4), advertised as a
+  // discrete list. The abstract `c.1.me.iris` value is for PTZ servo bodies; cinema
+  // bodies report a real F-number via `c.1.me.diaphragm`. Offered only when a
+  // compatible lens advertises a list.
+  if ('c.1.me.diaphragm' in map && 'c.1.me.diaphragm.list' in map) {
     controls.iris = {
       id: 'iris',
       available: true,
-      value: num(map['c.1.me.iris']),
-      min: num(map['c.1.me.iris.min']),
-      max: num(map['c.1.me.iris.max']),
+      value: num(map['c.1.me.diaphragm']),
+      list: list(map['c.1.me.diaphragm.list']),
+      unit: 'f',
     };
   }
   if ('c.1.wb' in map) {

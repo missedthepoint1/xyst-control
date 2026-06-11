@@ -35,10 +35,11 @@ describe('interpretInfo', () => {
     expect(snap.controls.nd?.list).toEqual([0, 400, 1600, 6400]);
   });
 
-  it('exposes iris as a range only when the lens advertises one', () => {
+  it('exposes iris as an f-stop list from the lens aperture (diaphragm)', () => {
     expect(snap.controls.iris?.available).toBe(true);
-    expect(snap.controls.iris?.min).toBe(108);
-    expect(snap.controls.iris?.max).toBe(250);
+    expect(snap.controls.iris?.value).toBe(400); // f/4 (F-number x100)
+    expect(snap.controls.iris?.list).toContain(280); // f/2.8
+    expect(snap.controls.iris?.list).toContain(1100); // f/11
   });
 
   it('marks a control unavailable when the camera did not advertise it', () => {

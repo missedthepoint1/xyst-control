@@ -26,10 +26,10 @@ describe('buildControlParams', () => {
     });
   });
 
-  it('iris sets manual exposure and the abstract value', () => {
-    expect(buildControlParams('iris', 200)).toEqual({
+  it('iris sets manual exposure and the lens aperture (F-number x100)', () => {
+    expect(buildControlParams('iris', 400)).toEqual({
       'c.1.exp': 'manual',
-      'c.1.me.iris': '200',
+      'c.1.me.diaphragm': '400',
     });
   });
 
