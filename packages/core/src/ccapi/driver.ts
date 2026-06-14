@@ -22,10 +22,16 @@ const SETTING: Partial<Record<ControlId, string>> = {
  * the body's own `shooting/settings` (value + `ability`) drives capability discovery, exactly
  * like the XC driver uses `info.cgi`. v1 covers connect, record, and ISO/shutter/iris/WB.
  *
- * Verify-on-hardware assumptions (documented but untested against a real R6 III here):
+ * Verified against a live EOS R6 Mark III (firmware 1.0.0): capability discovery from
+ * `shooting/settings` (value + `ability`), `deviceinformation`, and `recbutton` (POST; GET → 405).
+ * Transport is HTTPS/443 with a self-signed cert (handled in `client.ts`), NOT `http:8080`.
  *  - movie record is `POST shooting/control/recbutton {action:'start'|'stop'}` (recording state
  *    is tracked locally — CCAPI v1 has no simple "am I recording" read).
- *  - host must include the CCAPI port the camera displays (e.g. `192.168.1.50:8080`).
+ *  - Auth caveat: this body's Digest uses a *static nonce* and enforces the nonce-count, so the
+ *    one-shot `nc:1` digest in `client.ts` only authenticates a single request before the camera
+ *    rejects replays. Run with the camera's CCAPI auth disabled until digest is made stateful
+ *    (persist the challenge + increment `nc`). Connecting also requires the body to be off its
+ *    "Waiting to connect" pairing screen.
  */
 export class CcapiDriver extends EventEmitter implements CameraDriver {
   readonly id: string;

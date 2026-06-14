@@ -1,9 +1,10 @@
 import { describe, it, expect, afterEach, vi } from 'vitest';
+import https from 'node:https';
+import { EventEmitter } from 'node:events';
 import { CcapiDriver } from '../src/ccapi/driver.js';
 
 let drv: CcapiDriver;
-const realFetch = globalThis.fetch;
-afterEach(async () => { await drv?.disconnect(); globalThis.fetch = realFetch; });
+afterEach(async () => { await drv?.disconnect(); vi.restoreAllMocks(); });
 
 const SETTINGS = {
   iso: { value: '800', ability: ['auto', '100', '200', '400', '800', '1600'] },
@@ -14,29 +15,51 @@ const SETTINGS = {
   shootingmode: { value: 'm' },
 };
 
-type Call = { url: string; method: string; body?: string };
+type Call = { url: string; method: string; body?: string; headers: Record<string, string | number> };
 
+/** Stub node:https so the CCAPI client talks to an in-memory R6 III over (mock) HTTPS. */
 function mockCamera(): Call[] {
   const calls: Call[] = [];
-  const json = (o: unknown) => new Response(JSON.stringify(o), { status: 200, headers: { 'content-type': 'application/json' } });
-  globalThis.fetch = vi.fn(async (url: string | URL | Request, init?: RequestInit) => {
-    const u = String(url);
-    calls.push({ url: u, method: init?.method ?? 'GET', body: init?.body as string | undefined });
-    if (u.endsWith('/ccapi')) return json({ ver100: [] });
-    if (u.includes('/shooting/settings/')) return json({}); // PUT a single setting
-    if (u.includes('/shooting/settings')) return json(SETTINGS);
-    if (u.includes('/deviceinformation')) return json({ productname: 'Canon EOS R6 Mark III' });
-    if (u.includes('/devicestatus/battery')) return json({ level: 85, kind: 'battery' });
-    if (u.includes('/recbutton')) return json({});
-    return json({});
-  }) as typeof fetch;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  vi.spyOn(https, 'request').mockImplementation(((options: any, cb: any) => {
+    const path = String(options.path);
+    const method = String(options.method ?? 'GET');
+    const headers = (options.headers ?? {}) as Record<string, string | number>;
+    const url = `https://${options.hostname}:${options.port}${path}`;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const req: any = new EventEmitter();
+    let body: string | undefined;
+    req.write = (chunk: unknown) => { body = String(chunk); };
+    req.destroy = () => {};
+    req.end = () => {
+      calls.push({ url, method, body, headers });
+      let payload: unknown = {};
+      if (path.endsWith('/ccapi')) payload = { ver100: [] };
+      else if (path.includes('/shooting/settings/')) payload = {}; // PUT a single setting
+      else if (path.includes('/shooting/settings')) payload = SETTINGS;
+      else if (path.includes('/deviceinformation')) payload = { productname: 'Canon EOS R6 Mark III' };
+      else if (path.includes('/devicestatus/battery')) payload = { level: 85, kind: 'battery' };
+      else if (path.includes('/recbutton')) payload = {};
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const res: any = new EventEmitter();
+      res.statusCode = 200;
+      res.headers = { 'content-type': 'application/json' };
+      res.setEncoding = () => {};
+      queueMicrotask(() => {
+        cb(res);
+        res.emit('data', JSON.stringify(payload));
+        res.emit('end');
+      });
+    };
+    return req;
+  }) as unknown as typeof https.request);
   return calls;
 }
 
 describe('CcapiDriver', () => {
   it('connects and capability-discovers controls from shooting/settings', async () => {
     mockCamera();
-    drv = new CcapiDriver({ id: 'r6-1', name: 'R6 III', driver: 'ccapi', host: '10.0.0.9:8080' }, { pollMs: 100000 });
+    drv = new CcapiDriver({ id: 'r6-1', name: 'R6 III', driver: 'ccapi', host: '10.0.0.9' }, { pollMs: 100000 });
     await drv.connect();
     expect(drv.status).toBe('connected');
 
@@ -60,12 +83,15 @@ describe('CcapiDriver', () => {
 
   it('records and maps control values back to the exact CCAPI strings', async () => {
     const calls = mockCamera();
-    drv = new CcapiDriver({ id: 'r6-1', name: 'R6 III', driver: 'ccapi', host: '10.0.0.9:8080' }, { pollMs: 100000 });
+    drv = new CcapiDriver({ id: 'r6-1', name: 'R6 III', driver: 'ccapi', host: '10.0.0.9' }, { pollMs: 100000 });
     await drv.connect();
 
     await drv.startRecording();
     const rec = calls.find((c) => c.url.includes('/recbutton') && c.method === 'POST');
     expect(rec?.body).toContain('start');
+    // Regression: body requests MUST send Content-Length. Without it node:http uses chunked
+    // transfer-encoding, which the camera rejects ("400 Illegal request header").
+    expect(rec?.headers['content-length']).toBe(String(Buffer.byteLength(rec!.body!)));
     expect(drv.getState().record.recording).toBe(true);
 
     // iris 400 must PUT the original advertised string 'f4.0', not '400'.
@@ -83,8 +109,16 @@ describe('CcapiDriver', () => {
   });
 
   it('goes to error status when the host is not reachable / not CCAPI', async () => {
-    globalThis.fetch = vi.fn(async () => { throw new Error('ECONNREFUSED'); }) as typeof fetch;
-    drv = new CcapiDriver({ id: 'r6-1', name: 'R6 III', driver: 'ccapi', host: '10.0.0.9:8080' }, { pollMs: 100000 });
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    vi.spyOn(https, 'request').mockImplementation((() => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const req: any = new EventEmitter();
+      req.write = () => {};
+      req.destroy = () => {};
+      req.end = () => { queueMicrotask(() => req.emit('error', new Error('ECONNREFUSED'))); };
+      return req;
+    }) as unknown as typeof https.request);
+    drv = new CcapiDriver({ id: 'r6-1', name: 'R6 III', driver: 'ccapi', host: '10.0.0.9' }, { pollMs: 100000 });
     await drv.connect();
     expect(drv.status).toBe('error');
     expect(drv.getState().lastError).toBeTruthy();

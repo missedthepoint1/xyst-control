@@ -8,7 +8,13 @@ Wired-IP camera control for Canon cinema bodies. See `CLAUDE.md` for architectur
 |---|---|---|
 | Canon EOS C300 Mark III | _TBD at first test_ | |
 | Canon EOS C80 | _TBD at first test_ | |
+| Canon EOS R6 Mark III | 1.0.0 | 2026-06-13 |
 | Canon EOS R5 C | _TBD (Phase 4)_ | |
+
+> R6 III CCAPI runs over **HTTPS:443 with a self-signed cert** (the body is its own CA) and
+> **Digest auth with a static nonce** — run with the camera's CCAPI auth **disabled** until the
+> client's digest is made stateful (see `packages/core/src/ccapi/driver.ts`). The camera must be
+> off its "Waiting to connect" screen, and you should pin a **Manual IP** (DHCP reassigns it).
 
 ## Setup
 
