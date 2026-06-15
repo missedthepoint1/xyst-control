@@ -39,6 +39,7 @@ function PopoutMultiview() {
   const { states } = useCameras();
   const apiBase = useApiBase();
   const [osd, setOsd] = useOsd();
+  const [showLabels, setShowLabels] = usePref<boolean>('popoutLabels', true);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const idKey = [...states.map((s) => s.id)].sort().join('|');
   // Box count: how many feed tiles to show (1..8). 0 = auto (match the number of cameras).
@@ -81,6 +82,10 @@ function PopoutMultiview() {
             <input type="checkbox" checked={osd} onChange={(e) => setOsd(e.target.checked)} />
             <span>Show OSD on all feeds</span>
           </label>
+          <label className="cam-settings__row">
+            <input type="checkbox" checked={showLabels} onChange={(e) => setShowLabels(e.target.checked)} />
+            <span>Show labels &amp; controls</span>
+          </label>
         </div>
       )}
       <div className="multiview multiview--popout">
@@ -92,11 +97,13 @@ function PopoutMultiview() {
                 <VideoPanel cameraId={s.id} source={s.video} apiBase={apiBase}
                   recording={s.record.recording} showOsd={osd} osd={osd ? buildOsd(s) : undefined} />
               )}
-              <select className="feedsel" value={cid} aria-label="Camera for this tile"
-                onChange={(e) => setAssign((a) => a.map((x, j) => (j === i ? e.target.value : x)))}>
-                {states.map((c) => <option key={c.id} value={c.id}>{c.name ?? c.model ?? c.id}</option>)}
-              </select>
-              {s && <FeedControls s={s} />}
+              {showLabels && (
+                <select className="feedsel" value={cid} aria-label="Camera for this tile"
+                  onChange={(e) => setAssign((a) => a.map((x, j) => (j === i ? e.target.value : x)))}>
+                  {states.map((c) => <option key={c.id} value={c.id}>{c.name ?? c.model ?? c.id}</option>)}
+                </select>
+              )}
+              {showLabels && s && <FeedControls s={s} />}
             </div>
           );
         })}
