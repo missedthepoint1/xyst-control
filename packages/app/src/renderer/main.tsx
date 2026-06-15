@@ -1,5 +1,6 @@
 import { createRoot } from 'react-dom/client';
 import { useState, useEffect, type CSSProperties } from 'react';
+import type { CameraState } from '@xyst/core';
 import './theme.css';
 import './app.css';
 import { AppShell, type GridCols } from './components/AppShell.js';
@@ -14,9 +15,39 @@ import { useReorder } from './hooks/useReorder.js';
 // A second window opened with ?popout=multiview renders just the fullscreen multiview.
 const isPopout = new URLSearchParams(window.location.search).get('popout') === 'multiview';
 
+// Per-feed quick controls overlaid on each popout tile — capability-gated focus mode (AF/MF)
+// and a Track toggle (subject/face tracking), the Canon equivalents of the reference's AF/MF + Track.
+function FeedControls({ s }: { s: CameraState }) {
+  const c = s.controls;
+  const set = (control: string, value: string) =>
+    Promise.resolve().then(() => window.xyst.setControl(s.id, control, value)).catch(() => {});
+  // The body's tracking value (e.g. ppl_catch / facecatch); fall back to the first non-off option.
+  const list = (c.faceDetect?.list ?? []).map(String);
+  const trackVal = list.find((v) => v.includes('catch')) ?? list.find((v) => v !== 'off');
+  const tracking = c.faceDetect?.value != null && c.faceDetect.value !== 'off';
+  if (!c.focus?.available && !(c.faceDetect?.available && trackVal)) return null;
+  return (
+    <div className="feedctl">
+      {c.focus?.available && (
+        <div className="feedctl__seg">
+          <button className={c.focus.value === 'auto' ? 'is-on' : ''} onClick={() => set('focus', 'auto')}>AF</button>
+          <button className={c.focus.value === 'manual' ? 'is-on' : ''} onClick={() => set('focus', 'manual')}>MF</button>
+        </div>
+      )}
+      {c.faceDetect?.available && trackVal && (
+        <div className="feedctl__seg">
+          <button className={tracking ? 'is-on' : ''}
+            onClick={() => set('faceDetect', tracking ? 'off' : trackVal)}>Track</button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function PopoutMultiview() {
   const { states } = useCameras();
   const cols = Math.max(1, Math.ceil(Math.sqrt(states.length || 1)));
+  const anyRec = states.some((s) => s.record.recording);
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') window.close(); };
     window.addEventListener('keydown', onKey);
@@ -24,7 +55,26 @@ function PopoutMultiview() {
   }, []);
   return (
     <div className="popout" style={{ '--mv-cols': cols } as CSSProperties}>
-      <Multiview states={states} labels readOnly onSelect={() => {}} onReorder={() => {}} onRename={() => {}} />
+      <header className="popout__bar">
+        <div className="brand">
+          <span className="brand__mark">XYST CONTROL</span>
+          <span className="brand__sub">multiview</span>
+        </div>
+        <div className="popout__actions">
+          <button className={`btn ${anyRec ? 'btn--stop' : 'btn--rec'}`} onClick={() => window.xyst.recordAll(!anyRec)}>
+            {anyRec ? <><span className="sq" /> STOP ALL</> : <><span className="dot" /> REC ALL</>}
+          </button>
+          <button className="btn btn--ghost" onClick={() => window.close()} title="Exit fullscreen (Esc)">Exit ✕</button>
+        </div>
+      </header>
+      <Multiview states={states} labels={false} readOnly
+        tileExtra={(s) => (
+          <>
+            <span className="feedlabel">{s.name ?? s.model ?? s.id}</span>
+            <FeedControls s={s} />
+          </>
+        )}
+        onSelect={() => {}} onReorder={() => {}} onRename={() => {}} />
     </div>
   );
 }

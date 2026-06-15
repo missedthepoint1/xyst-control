@@ -1,11 +1,14 @@
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import type { CameraState } from '@xyst/core';
 import { VideoPanel } from './VideoPanel.js';
 import { useApiBase } from '../hooks/useApiBase.js';
 import { useReorder } from '../hooks/useReorder.js';
 
-export function Multiview({ states, labels = true, readOnly = false, onSelect, onReorder, onRename }: {
-  states: CameraState[]; labels?: boolean; readOnly?: boolean; onSelect: (id: string) => void;
+export function Multiview({ states, labels = true, readOnly = false, tileExtra, onSelect, onReorder, onRename }: {
+  states: CameraState[]; labels?: boolean; readOnly?: boolean;
+  /** Optional overlay rendered inside each tile (e.g. per-feed quick controls in the popout). */
+  tileExtra?: (s: CameraState) => ReactNode;
+  onSelect: (id: string) => void;
   onReorder: (orderedIds: string[]) => void; onRename: (id: string, name: string) => void;
 }) {
   const apiBase = useApiBase();
@@ -32,6 +35,7 @@ export function Multiview({ states, labels = true, readOnly = false, onSelect, o
           <div key={s.id} className={`mvtile${overId === s.id ? ' is-drop' : ''}`} {...tileProps}>
             <VideoPanel cameraId={s.id} source={s.video} apiBase={apiBase}
               recording={s.record.recording} onSelect={readOnly ? () => {} : () => onSelect(s.id)} />
+            {tileExtra?.(s)}
             {!readOnly && (
               <button type="button" className="drag-handle mvtile__grip" title="Drag to reorder" {...handleProps(s.id)}>
                 <svg viewBox="0 0 16 16" aria-hidden="true" className="grip-ic">
