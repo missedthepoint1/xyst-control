@@ -49,9 +49,10 @@ function PopoutMultiview() {
       return states[i % Math.max(states.length, 1)]?.id ?? '';
     }));
   }, [boxCount, idKey]);
-  // Grid that keeps each cell ~16:9 inside the 16:9 window: 1→1×1, 2→2×1, 3-4→2×2, 5-8→4×2.
-  const cols = boxCount <= 1 ? 1 : boxCount <= 4 ? 2 : 4;
-  const rows = boxCount <= 2 ? 1 : 2;
+  // Balanced grid so cells stay close to 16:9 inside the 16:9 window (bigger feeds, least empty
+  // space): 1→1×1, 2→2×1, 3-4→2×2, 5-6→3×2, 7-8→3×3. Square counts (1/4/9) fill perfectly.
+  const cols = Math.ceil(Math.sqrt(boxCount));
+  const rows = Math.ceil(boxCount / cols);
   return (
     <div className="popout" style={{ '--mv-cols': cols, '--mv-rows': rows } as CSSProperties}>
       <select className="boxcount" value={boxCount} aria-label="Number of feeds"
