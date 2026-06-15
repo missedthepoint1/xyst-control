@@ -67,14 +67,16 @@ function PopoutMultiview() {
             <path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M19.1 4.9L17 7M7 17l-2.1 2.1" />
           </svg>
         </button>
-        <select className="boxcount" value={boxCount} aria-label="Number of feeds"
-          onChange={(e) => setBoxPref(Number(e.target.value))}>
-          {[1, 2, 3, 4, 5, 6, 7, 8].map((n) => <option key={n} value={n}>{n} {n === 1 ? 'feed' : 'feeds'}</option>)}
-        </select>
       </div>
       {settingsOpen && (
         <div className="popout-settings">
           <div className="cam-settings__title">Multiview settings</div>
+          <label className="cam-settings__field">
+            <span>Feeds</span>
+            <select className="input" value={boxCount} onChange={(e) => setBoxPref(Number(e.target.value))}>
+              {[1, 2, 3, 4, 5, 6, 7, 8].map((n) => <option key={n} value={n}>{n} {n === 1 ? 'feed' : 'feeds'}</option>)}
+            </select>
+          </label>
           <label className="cam-settings__row">
             <input type="checkbox" checked={osd} onChange={(e) => setOsd(e.target.checked)} />
             <span>Show OSD on all feeds</span>
