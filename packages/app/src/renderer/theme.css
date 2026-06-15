@@ -45,11 +45,40 @@
   --accent-grad: #b8c6dc;          /* flat, no gradient */
   --accent-glow: transparent;       /* no glow */
   --rec: #ff2e2e; --rec-2: #ff2e2e; --rec-grad: #ff2e2e; --rec-glow: rgba(255, 46, 46, 0.4);
-  --radius: 8px; --radius-sm: 6px;  /* sharper */
+  --radius: 3px; --radius-sm: 3px;  /* squared instrument corners */
   --shadow: 0 10px 28px rgba(0, 0, 0, 0.55);
   --shadow-sm: 0 4px 14px rgba(0, 0, 0, 0.45);
 }
 :root[data-theme="broadcast"] body { background-image: none; }
+/* Square the chrome that hardcodes its own radius (the token change above misses these). */
+:root[data-theme="broadcast"] .video,
+:root[data-theme="broadcast"] .select,
+:root[data-theme="broadcast"] .input,
+:root[data-theme="broadcast"] .seg,
+:root[data-theme="broadcast"] .seg__btn,
+:root[data-theme="broadcast"] .osd-btn,
+:root[data-theme="broadcast"] .rec-btn,
+:root[data-theme="broadcast"] .stepper__btn,
+:root[data-theme="broadcast"] .act,
+:root[data-theme="broadcast"] .panel__remove,
+:root[data-theme="broadcast"] .drag-handle,
+:root[data-theme="broadcast"] .add__title .plus,
+:root[data-theme="broadcast"] .modal__card,
+:root[data-theme="broadcast"] .modal__close,
+:root[data-theme="broadcast"] .feedctl__seg,
+:root[data-theme="broadcast"] .feedctl__seg button,
+:root[data-theme="broadcast"] .feedsel,
+:root[data-theme="broadcast"] .boxcount,
+:root[data-theme="broadcast"] .popout-gear,
+:root[data-theme="broadcast"] .popout-settings,
+:root[data-theme="broadcast"] .theme-select,
+:root[data-theme="broadcast"] .cam-settings,
+:root[data-theme="broadcast"] .video__name,
+:root[data-theme="broadcast"] .video__tally,
+:root[data-theme="broadcast"] .mvtile__label,
+:root[data-theme="broadcast"] .osd__bar,
+:root[data-theme="broadcast"] .osd__rec,
+:root[data-theme="broadcast"] .btn { border-radius: 3px; }
 :root[data-theme="broadcast"] .card { backdrop-filter: none; -webkit-backdrop-filter: none; }
 
 /* ---- Cinema: warm near-black, single amber accent, faint top wash, no glass ---- */
