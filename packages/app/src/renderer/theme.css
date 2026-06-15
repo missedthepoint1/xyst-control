@@ -30,6 +30,67 @@
   --shadow-sm: 0 6px 20px rgba(0, 0, 0, 0.4);
 }
 
+/* ---- Broadcast: matte graphite instrument, single steel accent, no glass/glow/aurora ---- */
+:root[data-theme="broadcast"] {
+  --bg: #0c0e11;
+  --text: #e7eaf0;
+  --muted: #868f9e;
+  --faint: #5a6271;
+  --glass: #15181d;
+  --glass-2: #1b1f25;
+  --border: rgba(255, 255, 255, 0.08);
+  --border-strong: rgba(255, 255, 255, 0.18);
+  --accent: #b8c6dc;
+  --accent-2: #b8c6dc;
+  --accent-grad: #b8c6dc;          /* flat, no gradient */
+  --accent-glow: transparent;       /* no glow */
+  --rec: #ff2e2e; --rec-2: #ff2e2e; --rec-grad: #ff2e2e; --rec-glow: rgba(255, 46, 46, 0.4);
+  --radius: 8px; --radius-sm: 6px;  /* sharper */
+  --shadow: 0 10px 28px rgba(0, 0, 0, 0.55);
+  --shadow-sm: 0 4px 14px rgba(0, 0, 0, 0.45);
+}
+:root[data-theme="broadcast"] body { background-image: none; }
+:root[data-theme="broadcast"] .card { backdrop-filter: none; -webkit-backdrop-filter: none; }
+
+/* ---- Cinema: warm near-black, single amber accent, faint top wash, no glass ---- */
+:root[data-theme="cinema"] {
+  --bg: #0e0c0b;
+  --text: #efe9e2;
+  --muted: #9a9087;
+  --faint: #6b6359;
+  --glass: #181513;
+  --glass-2: #1f1b18;
+  --border: rgba(255, 240, 225, 0.09);
+  --border-strong: rgba(255, 240, 225, 0.18);
+  --accent: #e9a85a;
+  --accent-2: #e9a85a;
+  --accent-grad: #e9a85a;          /* flat amber */
+  --accent-glow: transparent;
+  --rec: #ff3b3b; --rec-2: #ff3b3b; --rec-grad: #ff3b3b; --rec-glow: rgba(255, 59, 59, 0.38);
+  --radius: 10px; --radius-sm: 8px;
+  --shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
+  --shadow-sm: 0 5px 16px rgba(0, 0, 0, 0.42);
+}
+:root[data-theme="cinema"] body {
+  background-image: radial-gradient(1200px 820px at 50% -12%, rgba(233, 168, 90, 0.06), transparent 60%);
+}
+:root[data-theme="cinema"] .card { backdrop-filter: none; -webkit-backdrop-filter: none; }
+
+/* Flatten the hardcoded "aurora" bits (brand gradient, header glass, accent glow) for the
+   instrument themes so no violet/cyan leaks through. */
+:root[data-theme="broadcast"] .app__header,
+:root[data-theme="cinema"] .app__header {
+  background: var(--glass); backdrop-filter: none; -webkit-backdrop-filter: none;
+}
+:root[data-theme="broadcast"] .brand__mark,
+:root[data-theme="cinema"] .brand__mark {
+  background: none; color: var(--accent); -webkit-text-fill-color: var(--accent);
+}
+:root[data-theme="broadcast"] .btn--accent,
+:root[data-theme="cinema"] .btn--accent { box-shadow: var(--shadow-sm); }
+:root[data-theme="broadcast"] .btn--accent:hover,
+:root[data-theme="cinema"] .btn--accent:hover { box-shadow: var(--shadow); }
+
 * { box-sizing: border-box; }
 
 html, body, #root { height: 100%; }

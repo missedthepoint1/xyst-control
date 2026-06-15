@@ -13,6 +13,9 @@ import { useCameras } from './hooks/useCameras.js';
 import { useApiBase } from './hooks/useApiBase.js';
 import { useOsd } from './hooks/useOsd.js';
 import { buildOsd } from './osdInfo.js';
+import { applyTheme, getTheme, setTheme, type ThemeName } from './theme.js';
+
+applyTheme(); // apply the saved theme in every window (control + popout) before first paint
 import { usePref } from './hooks/usePref.js';
 import { useReorder } from './hooks/useReorder.js';
 
@@ -119,6 +122,7 @@ function App() {
   const [adding, setAdding] = useState(false);
   const [cols, setCols] = usePref<GridCols>('cols', 'full');
   const [labels, setLabels] = usePref<boolean>('labels', true);
+  const [theme, setThemeState] = useState<ThemeName>(getTheme());
 
   const selected = single ? states.find((s) => s.id === single) : undefined;
   const anyRec = states.some((s) => s.record.recording);
@@ -147,6 +151,8 @@ function App() {
       recActive={anyRec}
       onToggleRec={() => window.xyst.recordAll(!anyRec)}
       onPopout={() => window.xyst.openMultiview()}
+      theme={theme}
+      onTheme={(t) => { setTheme(t); setThemeState(t); }}
     >
       {selected ? (
         <div className="single">

@@ -1,12 +1,14 @@
 import type { ReactNode } from 'react';
+import { THEMES, type ThemeName } from '../theme.js';
 
 export type GridCols = 'full' | 'two' | 'quad';
 
-export function AppShell({ children, view, onView, cols, onCols, labels, onLabels, onAdd, recActive, onToggleRec, onPopout }: {
+export function AppShell({ children, view, onView, cols, onCols, labels, onLabels, onAdd, recActive, onToggleRec, onPopout, theme, onTheme }: {
   children: ReactNode; view: 'panels' | 'multiview'; onView: (v: 'panels' | 'multiview') => void;
   cols: GridCols; onCols: (c: GridCols) => void;
   labels: boolean; onLabels: () => void;
   onAdd: () => void; recActive: boolean; onToggleRec: () => void; onPopout?: () => void;
+  theme?: ThemeName; onTheme?: (t: ThemeName) => void;
 }) {
   return (
     <div className="app">
@@ -46,6 +48,11 @@ export function AppShell({ children, view, onView, cols, onCols, labels, onLabel
               <circle cx="7.5" cy="7.5" r="1.3" fill="currentColor" stroke="none" />
             </svg>
           </button>
+          {onTheme && (
+            <select className="theme-select" value={theme} onChange={(e) => onTheme(e.target.value as ThemeName)} title="Theme">
+              {THEMES.map((t) => <option key={t.id} value={t.id}>{t.label}</option>)}
+            </select>
+          )}
           <button className="btn btn--add" onClick={onAdd} title="Add camera"><span className="plus-ic">+</span> Add</button>
           <button className={`btn ${recActive ? 'btn--stop' : 'btn--rec'}`} onClick={onToggleRec}>
             {recActive ? <><span className="sq" /> STOP ALL</> : <><span className="dot" /> REC ALL</>}

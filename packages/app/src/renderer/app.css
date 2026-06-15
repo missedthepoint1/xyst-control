@@ -415,3 +415,14 @@
 }
 .feedctl__seg button:hover { background: rgba(255, 255, 255, 0.1); }
 .feedctl__seg button.is-on { background: var(--accent-grad); color: #0b0a16; }
+
+/* Theme selector (header) */
+.theme-select {
+  padding: 8px 28px 8px 12px; border-radius: var(--radius-sm); font-size: 13px; font-weight: 600;
+  color: var(--text); background-color: var(--glass-2); border: 1px solid var(--border);
+  appearance: none; -webkit-appearance: none; cursor: pointer;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='none' stroke='%23aab' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M2 4l4 4 4-4'/></svg>");
+  background-repeat: no-repeat; background-position: right 9px center;
+}
+.theme-select:hover { border-color: var(--border-strong); }
+.theme-select option { color: #111; }
