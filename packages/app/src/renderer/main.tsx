@@ -17,31 +17,18 @@ import { useReorder } from './hooks/useReorder.js';
 // A second window opened with ?popout=multiview renders just the fullscreen multiview.
 const isPopout = new URLSearchParams(window.location.search).get('popout') === 'multiview';
 
-// Per-feed quick controls overlaid on each popout tile — capability-gated focus mode (AF/MF)
-// and a Track toggle (subject/face tracking), the Canon equivalents of the reference's AF/MF + Track.
+// Per-feed quick controls overlaid on each popout tile — capability-gated focus mode (AF/MF).
 function FeedControls({ s }: { s: CameraState }) {
   const c = s.controls;
-  const set = (control: string, value: string) =>
-    Promise.resolve().then(() => window.xyst.setControl(s.id, control, value)).catch(() => {});
-  // The body's tracking value (e.g. ppl_catch / facecatch); fall back to the first non-off option.
-  const list = (c.faceDetect?.list ?? []).map(String);
-  const trackVal = list.find((v) => v.includes('catch')) ?? list.find((v) => v !== 'off');
-  const tracking = c.faceDetect?.value != null && c.faceDetect.value !== 'off';
-  if (!c.focus?.available && !(c.faceDetect?.available && trackVal)) return null;
+  if (!c.focus?.available) return null;
+  const set = (value: string) =>
+    Promise.resolve().then(() => window.xyst.setControl(s.id, 'focus', value)).catch(() => {});
   return (
     <div className="feedctl">
-      {c.focus?.available && (
-        <div className="feedctl__seg">
-          <button className={c.focus.value === 'auto' ? 'is-on' : ''} onClick={() => set('focus', 'auto')}>AF</button>
-          <button className={c.focus.value === 'manual' ? 'is-on' : ''} onClick={() => set('focus', 'manual')}>MF</button>
-        </div>
-      )}
-      {c.faceDetect?.available && trackVal && (
-        <div className="feedctl__seg">
-          <button className={tracking ? 'is-on' : ''}
-            onClick={() => set('faceDetect', tracking ? 'off' : trackVal)}>Track</button>
-        </div>
-      )}
+      <div className="feedctl__seg">
+        <button className={c.focus.value === 'auto' ? 'is-on' : ''} onClick={() => set('auto')}>AF</button>
+        <button className={c.focus.value === 'manual' ? 'is-on' : ''} onClick={() => set('manual')}>MF</button>
+      </div>
     </div>
   );
 }
@@ -50,25 +37,25 @@ function PopoutMultiview() {
   const { states } = useCameras();
   const apiBase = useApiBase();
   const idKey = [...states.map((s) => s.id)].sort().join('|');
-  // One tile per camera by default; each tile can be reassigned to any camera via its dropdown.
-  // Only reset the slots when the set of cameras changes (not on every state push).
-  const [assign, setAssign] = useState<string[]>(() => states.map((s) => s.id));
-  useEffect(() => { setAssign(states.map((s) => s.id)); }, [idKey]);
-  const anyRec = states.some((s) => s.record.recording);
-  const cols = Math.max(1, Math.ceil(Math.sqrt(assign.length || 1)));
+  // Box count: how many feed tiles to show (1..8). 0 = auto (match the number of cameras).
+  const [boxPref, setBoxPref] = useState(0);
+  const boxCount = Math.min(8, boxPref || Math.max(states.length, 1));
+  // Per-tile camera assignment; keep valid existing choices, fill new/invalid slots by cycling.
+  const [assign, setAssign] = useState<string[]>([]);
+  useEffect(() => {
+    setAssign((prev) => Array.from({ length: boxCount }, (_, i) => {
+      const cur = prev[i];
+      if (cur && states.some((s) => s.id === cur)) return cur;
+      return states[i % Math.max(states.length, 1)]?.id ?? '';
+    }));
+  }, [boxCount, idKey]);
+  const cols = Math.max(1, Math.ceil(Math.sqrt(boxCount)));
   return (
     <div className="popout" style={{ '--mv-cols': cols } as CSSProperties}>
-      <header className="popout__bar">
-        <div className="brand">
-          <span className="brand__mark">XYST CONTROL</span>
-          <span className="brand__sub">multiview</span>
-        </div>
-        <div className="popout__actions">
-          <button className={`btn ${anyRec ? 'btn--stop' : 'btn--rec'}`} onClick={() => window.xyst.recordAll(!anyRec)}>
-            {anyRec ? <><span className="sq" /> STOP ALL</> : <><span className="dot" /> REC ALL</>}
-          </button>
-        </div>
-      </header>
+      <select className="boxcount" value={boxCount} aria-label="Number of feeds"
+        onChange={(e) => setBoxPref(Number(e.target.value))}>
+        {[1, 2, 3, 4, 5, 6, 7, 8].map((n) => <option key={n} value={n}>{n} {n === 1 ? 'feed' : 'feeds'}</option>)}
+      </select>
       <div className="multiview multiview--popout">
         {assign.map((cid, i) => {
           const s = states.find((x) => x.id === cid);
@@ -76,7 +63,7 @@ function PopoutMultiview() {
             <div className="mvtile" key={i}>
               {s && (
                 <VideoPanel cameraId={s.id} source={s.video} apiBase={apiBase}
-                  recording={s.record.recording} onSelect={() => {}} />
+                  recording={s.record.recording} cover showOsd={false} />
               )}
               <select className="feedsel" value={cid} aria-label="Camera for this tile"
                 onChange={(e) => setAssign((a) => a.map((x, j) => (j === i ? e.target.value : x)))}>
