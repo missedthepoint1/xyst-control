@@ -74,22 +74,86 @@
 :root[data-theme="cinema"] body {
   background-image: radial-gradient(1200px 820px at 50% -12%, rgba(233, 168, 90, 0.06), transparent 60%);
 }
-:root[data-theme="cinema"] .card { backdrop-filter: none; -webkit-backdrop-filter: none; }
 
-/* Flatten the hardcoded "aurora" bits (brand gradient, header glass, accent glow) for the
-   instrument themes so no violet/cyan leaks through. */
-:root[data-theme="broadcast"] .app__header,
-:root[data-theme="cinema"] .app__header {
+/* ---- Mono: near-monochrome, monospace UI, one cool accent, ultra-flat ---- */
+:root[data-theme="mono"] {
+  --bg: #0a0a0b;
+  --text: #e6e6e8;
+  --muted: #8a8a90;
+  --faint: #5c5c63;
+  --glass: #131316;
+  --glass-2: #19191c;
+  --border: rgba(255, 255, 255, 0.10);
+  --border-strong: rgba(255, 255, 255, 0.2);
+  --accent: #cfd3da;
+  --accent-2: #cfd3da;
+  --accent-grad: #cfd3da;
+  --accent-glow: transparent;
+  --rec: #ff3340; --rec-2: #ff3340; --rec-grad: #ff3340; --rec-glow: rgba(255, 51, 64, 0.35);
+  --radius: 6px; --radius-sm: 4px;
+  --shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
+  --shadow-sm: 0 3px 12px rgba(0, 0, 0, 0.5);
+}
+:root[data-theme="mono"] body { background-image: none; }
+
+/* ---- Tactical: terminal black, green-tinted chrome, phosphor-amber accent, monospace ---- */
+:root[data-theme="tactical"] {
+  --bg: #07090a;
+  --text: #cad7d0;
+  --muted: #6f8079;
+  --faint: #4a574f;
+  --glass: #0f1311;
+  --glass-2: #141a17;
+  --border: rgba(120, 200, 150, 0.14);
+  --border-strong: rgba(120, 200, 150, 0.28);
+  --accent: #ffb000;
+  --accent-2: #ffb000;
+  --accent-grad: #ffb000;
+  --accent-glow: transparent;
+  --ok: #46d369;
+  --rec: #ff3b30; --rec-2: #ff3b30; --rec-grad: #ff3b30; --rec-glow: rgba(255, 59, 48, 0.4);
+  --radius: 4px; --radius-sm: 3px;
+  --shadow: 0 8px 22px rgba(0, 0, 0, 0.62);
+  --shadow-sm: 0 3px 12px rgba(0, 0, 0, 0.5);
+}
+:root[data-theme="tactical"] body { background-image: none; }
+
+/* ---- Shared overrides for every flat (non-Aurora) theme: kill glass/glow/brand gradient ---- */
+:root[data-theme]:not([data-theme="aurora"]) .app__header {
   background: var(--glass); backdrop-filter: none; -webkit-backdrop-filter: none;
 }
-:root[data-theme="broadcast"] .brand__mark,
-:root[data-theme="cinema"] .brand__mark {
+:root[data-theme]:not([data-theme="aurora"]) .card { backdrop-filter: none; -webkit-backdrop-filter: none; }
+:root[data-theme]:not([data-theme="aurora"]) .brand__mark {
   background: none; color: var(--accent); -webkit-text-fill-color: var(--accent);
 }
-:root[data-theme="broadcast"] .btn--accent,
-:root[data-theme="cinema"] .btn--accent { box-shadow: var(--shadow-sm); }
-:root[data-theme="broadcast"] .btn--accent:hover,
-:root[data-theme="cinema"] .btn--accent:hover { box-shadow: var(--shadow); }
+:root[data-theme]:not([data-theme="aurora"]) .btn--accent { box-shadow: var(--shadow-sm); }
+:root[data-theme]:not([data-theme="aurora"]) .btn--accent:hover { box-shadow: var(--shadow); }
+
+/* ---- Typographic identity per theme ---- */
+/* Camera-HUD data in monospace (the OSD overlay) for the instrument themes. */
+:root[data-theme="broadcast"] .osd, :root[data-theme="mono"] .osd, :root[data-theme="tactical"] .osd {
+  font-family: ui-monospace, "SF Mono", Menlo, monospace; letter-spacing: 0;
+}
+/* Mono / Tactical: the whole UI in monospace. */
+:root[data-theme="mono"] body, :root[data-theme="tactical"] body {
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+}
+/* Brand wordmark: geometric for Cinema, technical mono for the instrument themes. */
+:root[data-theme="cinema"] .brand__mark { font-family: "Futura", "Avenir Next", system-ui; letter-spacing: 2px; }
+:root[data-theme="broadcast"] .brand__mark, :root[data-theme="mono"] .brand__mark, :root[data-theme="tactical"] .brand__mark {
+  font-family: ui-monospace, "SF Mono", Menlo, monospace; letter-spacing: 1.5px; font-weight: 700;
+}
+/* Panel titles geometric for Cinema. */
+:root[data-theme="cinema"] .panel__title { font-family: "Futura", "Avenir Next", system-ui; letter-spacing: 0.5px; }
+
+/* ---- Icon-style identity: round status/active dots become square "LED" pips on instrument themes ---- */
+:root[data-theme="broadcast"] .osd-btn .ic, :root[data-theme="mono"] .osd-btn .ic, :root[data-theme="tactical"] .osd-btn .ic,
+:root[data-theme="broadcast"] .status .dot, :root[data-theme="mono"] .status .dot, :root[data-theme="tactical"] .status .dot,
+:root[data-theme="broadcast"] .btn .dot, :root[data-theme="mono"] .btn .dot, :root[data-theme="tactical"] .btn .dot,
+:root[data-theme="broadcast"] .rec-btn .ic, :root[data-theme="mono"] .rec-btn .ic, :root[data-theme="tactical"] .rec-btn .ic,
+:root[data-theme="broadcast"] .osd__dot, :root[data-theme="mono"] .osd__dot, :root[data-theme="tactical"] .osd__dot {
+  border-radius: 1px;
+}
 
 * { box-sizing: border-box; }
 
