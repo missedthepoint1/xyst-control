@@ -7,7 +7,7 @@ Wired-IP camera control for Canon cinema bodies. See `CLAUDE.md` for architectur
 | Camera | Firmware | Verified date |
 |---|---|---|
 | Canon EOS C300 Mark III | _TBD at first test_ | |
-| Canon EOS C80 | _TBD at first test_ | |
+| Canon EOS C80 | 1.0.2.1 (XC protocol 7.0.0) | 2026-06-15 |
 | Canon EOS R6 Mark III | 1.0.0 | 2026-06-13 |
 | Canon EOS R5 C | _TBD (Phase 4)_ | |
 
@@ -15,6 +15,12 @@ Wired-IP camera control for Canon cinema bodies. See `CLAUDE.md` for architectur
 > **Digest auth with a static nonce** — run with the camera's CCAPI auth **disabled** until the
 > client's digest is made stateful (see `packages/core/src/ccapi/driver.ts`). The camera must be
 > off its "Waiting to connect" screen, and you should pin a **Manual IP** (DHCP reassigns it).
+>
+> **Log preview looks flat — that's expected.** The protocol preview (`image.cgi` / CCAPI
+> liveview) follows the **recording gamma**, so a body shooting C-Log2/3 sends a washed-out
+> frame; the camera's view-assist LUT only lives on its SDI/HDMI outputs. Turn on the per-camera
+> **LUT** (gear → View assist) for a graded preview — it's applied in the app and never changes
+> what the camera records.
 
 ## Setup
 
