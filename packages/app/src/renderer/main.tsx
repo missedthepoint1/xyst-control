@@ -72,9 +72,9 @@ function PopoutMultiview() {
         <div className="popout-settings">
           <div className="cam-settings__title">Multiview settings</div>
           <label className="cam-settings__field">
-            <span>Feeds</span>
+            <span>Cameras</span>
             <select className="input" value={boxCount} onChange={(e) => setBoxPref(Number(e.target.value))}>
-              {[1, 2, 3, 4, 5, 6, 7, 8].map((n) => <option key={n} value={n}>{n} {n === 1 ? 'feed' : 'feeds'}</option>)}
+              {[1, 2, 3, 4, 5, 6, 7, 8].map((n) => <option key={n} value={n}>{n} {n === 1 ? 'camera' : 'cameras'}</option>)}
             </select>
           </label>
           <label className="cam-settings__row">
