@@ -195,6 +195,13 @@ export class CameraManager extends EventEmitter {
     const profile = this.profiles.get(cameraId);
     if (!profile) throw new Error(`no camera with id ${cameraId}`);
     profile.video = video;
+    // Leaving the protocol preview releases the camera's live view so the body is usable again
+    // (e.g. its menu, which is locked out while live view streams). Best-effort — never block
+    // the source change on the camera.
+    if (video.type !== 'protocol') {
+      const driver = this.drivers.get(cameraId);
+      await driver?.stopPreview?.().catch(() => {});
+    }
     await this.save();
     const s = this.getState(cameraId);
     if (s) this.emit('state', cameraId, s); // surface the change to the UI

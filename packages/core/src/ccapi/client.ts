@@ -3,7 +3,7 @@ import http from 'node:http';
 import https from 'node:https';
 import { URL } from 'node:url';
 import { buildBasicHeader, buildDigestHeader, parseChallenge } from '../xc/auth.js';
-import type { CameraAuth } from '../types.js';
+import type { CameraAuth, PreviewFrame } from '../types.js';
 
 /**
  * JSON HTTP client for Canon's Camera Control API (CCAPI). Robust by default —
@@ -33,8 +33,21 @@ export interface CcapiOptions {
 interface RawResponse {
   status: number;
   text: string;
+  /** Raw response bytes — used for binary payloads (live view JPEG). */
+  buffer: Buffer;
   header(name: string): string | undefined;
 }
+
+// CCAPI bodies (verified on an EOS R6 Mark III) service only ONE TCP connection at a time — a
+// second concurrent connection is left hanging until the first frees up. The driver polls
+// `shooting/settings` continuously and fetches live view JPEGs in parallel, so without
+// serialisation those requests time each other out. Keep-alive + `maxSockets: 1` makes Node
+// queue every request for a host onto a single reused socket (maxSockets is per-host, so
+// multiple cameras still get their own connection), which both fixes the contention and avoids
+// a TLS handshake per frame.
+const AGENT_OPTS = { keepAlive: true, maxSockets: 1 } as const;
+const httpsAgent = new https.Agent({ ...AGENT_OPTS, rejectUnauthorized: false });
+const httpAgent = new http.Agent(AGENT_OPTS);
 
 /** Normalise a profile host into a CCAPI base URL, defaulting bare hosts to HTTPS. */
 function baseUrl(host: string): string {
@@ -64,21 +77,27 @@ function once(
         method,
         headers: finalHeaders,
         timeout: timeoutMs,
+        agent: isHttps ? httpsAgent : httpAgent, // single reused socket per host (see above)
         // The camera presents a self-signed cert (it is its own CA) — accept it.
         ...(isHttps ? { rejectUnauthorized: false } : {}),
       },
       (res) => {
-        let data = '';
-        res.setEncoding('utf8');
-        res.on('data', (chunk) => { data += chunk; });
-        res.on('end', () => resolve({
-          status: res.statusCode ?? 0,
-          text: data,
-          header: (name) => {
-            const v = res.headers[name.toLowerCase()];
-            return Array.isArray(v) ? v.join(', ') : v;
-          },
-        }));
+        // Collect raw bytes (don't setEncoding) so the same path serves JSON and binary
+        // (live view JPEG). Text is just the UTF-8 view of those bytes.
+        const chunks: Buffer[] = [];
+        res.on('data', (chunk) => { chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk)); });
+        res.on('end', () => {
+          const buffer = Buffer.concat(chunks);
+          resolve({
+            status: res.statusCode ?? 0,
+            text: buffer.toString('utf8'),
+            buffer,
+            header: (name) => {
+              const v = res.headers[name.toLowerCase()];
+              return Array.isArray(v) ? v.join(', ') : v;
+            },
+          });
+        });
       },
     );
     req.on('timeout', () => req.destroy(new Error(`CCAPI request timed out after ${timeoutMs}ms`)));
@@ -128,4 +147,20 @@ export async function ccapiJson<T = unknown>(host: string, path: string, opts: C
     throw new Error(`CCAPI ${opts.method ?? 'GET'} ${path} -> ${res.status}${detail ? `: ${detail}` : ''}`);
   }
   return (text ? JSON.parse(text) : {}) as T;
+}
+
+/**
+ * Perform a CCAPI request and return the raw response bytes — for binary payloads the JSON
+ * client can't carry (the live view JPEG from `shooting/liveview/flip`). Shares the same
+ * transport/auth/retry as {@link ccapiJson}; CCAPI errors still arrive as JSON, so decode the
+ * body's `message` on failure exactly as the JSON path does.
+ */
+export async function ccapiBinary(host: string, path: string, opts: CcapiOptions = {}): Promise<PreviewFrame> {
+  const res = await send(host, path, opts);
+  if (res.status >= 400) {
+    let detail = '';
+    try { detail = (JSON.parse(res.text) as { message?: string })?.message ?? ''; } catch { /* binary / non-JSON error */ }
+    throw new Error(`CCAPI ${opts.method ?? 'GET'} ${path} -> ${res.status}${detail ? `: ${detail}` : ''}`);
+  }
+  return { data: new Uint8Array(res.buffer), contentType: res.header('content-type') ?? 'image/jpeg' };
 }

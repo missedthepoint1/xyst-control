@@ -20,6 +20,8 @@ export interface CameraDriver extends EventEmitter {
   applySettings(settings: ControlSettings): Promise<void>;
   /** Fetch a single preview frame (protocol JPEG). Optional — not all drivers support it. */
   getPreview?(): Promise<import('./types.js').PreviewFrame>;
+  /** Release any active protocol preview/live-view session (frees the body). Optional. */
+  stopPreview?(): Promise<void>;
   /** Set the AF frame to a normalized point (x,y in 0..1) and pull focus there. Optional. */
   setFocusPoint?(x: number, y: number): Promise<void>;
   /** Fetch detected face/eye/object rectangles from meta.cgi. Optional. */

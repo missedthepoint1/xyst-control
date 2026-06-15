@@ -1,7 +1,7 @@
 import { EventEmitter } from 'node:events';
 import type { CameraDriver } from '../driver.js';
-import type { CameraProfile, CameraSnapshot, CameraState, ConnectionStatus, ControlId, ControlSettings } from '../types.js';
-import { ccapiJson } from './client.js';
+import type { CameraProfile, CameraSnapshot, CameraState, ConnectionStatus, ControlId, ControlSettings, PreviewFrame } from '../types.js';
+import { ccapiBinary, ccapiJson } from './client.js';
 import { interpretCcapi, type CcapiRaw } from './interpret.js';
 
 export interface CcapiDriverOptions {
@@ -9,6 +9,8 @@ export interface CcapiDriverOptions {
   timeoutMs?: number;
   /** CCAPI version segment for the control endpoints (default 'ver100'). */
   apiVersion?: string;
+  /** Live view frame size requested from the body: 'small' (~320) or 'medium' (~1024). */
+  liveviewSize?: 'small' | 'medium';
 }
 
 /** ControlId -> CCAPI shooting/settings setting name. Only the mapped controls are offered. */
@@ -20,7 +22,8 @@ const SETTING: Partial<Record<ControlId, string>> = {
  * Canon EOS R6 Mark III (and other CCAPI bodies) — Camera Control API driver. CCAPI is a
  * documented REST/JSON API, so unlike the XC and R5 C drivers nothing is reverse-engineered:
  * the body's own `shooting/settings` (value + `ability`) drives capability discovery, exactly
- * like the XC driver uses `info.cgi`. v1 covers connect, record, and ISO/shutter/iris/WB.
+ * like the XC driver uses `info.cgi`. Covers connect, record, ISO/shutter/iris/WB, and live view
+ * (JPEG-per-poll via `shooting/liveview/flip`).
  *
  * Verified against a live EOS R6 Mark III (firmware 1.0.0): capability discovery from
  * `shooting/settings` (value + `ability`), `deviceinformation`, and `recbutton` (POST; GET → 405).
@@ -42,11 +45,13 @@ export class CcapiDriver extends EventEmitter implements CameraDriver {
   private readonly pollMs: number;
   private readonly timeoutMs: number;
   private readonly base: string;
+  private readonly liveviewSize: 'small' | 'medium';
   private raw: CcapiRaw = { iso: new Map(), tv: new Map(), av: new Map() };
   private recording = false;
   private timer?: NodeJS.Timeout;
   private polling = false;
   private controlInFlight = false;
+  private liveviewActive = false;
 
   constructor(private profile: CameraProfile, opts: CcapiDriverOptions = {}) {
     super();
@@ -54,6 +59,7 @@ export class CcapiDriver extends EventEmitter implements CameraDriver {
     this.pollMs = opts.pollMs ?? 750;
     this.timeoutMs = opts.timeoutMs ?? 4000;
     this.base = `/ccapi/${opts.apiVersion ?? 'ver100'}`;
+    this.liveviewSize = opts.liveviewSize ?? 'medium';
     this.on('error', () => {});
   }
 
@@ -87,7 +93,69 @@ export class CcapiDriver extends EventEmitter implements CameraDriver {
   async disconnect(): Promise<void> {
     if (this.timer) clearInterval(this.timer);
     this.timer = undefined;
+    await this.stopLiveview();
     this.setStatus('disconnected');
+  }
+
+  /**
+   * Live view (Phase 5). CCAPI serves a JPEG-per-poll preview, mirroring the XC `image.cgi`
+   * path: arm the body's live view once (lazily, only when a frame is actually requested — video
+   * stays decoupled from control, rule 5), then GET `shooting/liveview/flip` for the latest
+   * complete frame. If the body has torn live view down (mode change / sleep), re-arm once and retry.
+   */
+  async getPreview(): Promise<PreviewFrame> {
+    if (!this.liveviewActive) await this.startLiveview();
+    try {
+      return await this.flip();
+    } catch (err) {
+      // The body returns `503 {"message":"Live view not started"}` only when live view truly
+      // isn't running (it can drop after the camera sleeps or changes mode) — re-arm once for
+      // that. For ANY other failure (notably: the operator is in the camera's own menu, which
+      // stalls frame delivery) do NOT re-POST liveview: re-arming would yank them back out of
+      // the menu. Surface the gap instead and let the next poll retry.
+      if (this.liveviewActive && /live view not started/i.test(String(err))) {
+        this.liveviewActive = false;
+        await this.startLiveview();
+        return this.flip();
+      }
+      throw err;
+    }
+  }
+
+  /**
+   * Release live view so the operator can use the camera body (its menu is locked out while
+   * live view streams). Called by the manager when the video source leaves 'protocol', and on
+   * disconnect. Selecting "Live view" again re-arms lazily on the next frame request.
+   */
+  async stopPreview(): Promise<void> {
+    await this.stopLiveview();
+  }
+
+  private flip(): Promise<PreviewFrame> {
+    return ccapiBinary(this.profile.host, `${this.base}/shooting/liveview/flip`, {
+      auth: this.profile.auth, timeoutMs: this.timeoutMs,
+    });
+  }
+
+  private async startLiveview(): Promise<void> {
+    // cameradisplay:'keep' — drive live view over CCAPI without commandeering the body's own
+    // screen, so the camera stays usable as the operator left it.
+    await ccapiJson(this.profile.host, `${this.base}/shooting/liveview`, {
+      method: 'POST', body: { cameradisplay: 'keep', liveviewsize: this.liveviewSize },
+      auth: this.profile.auth, timeoutMs: this.timeoutMs,
+    });
+    this.liveviewActive = true;
+  }
+
+  private async stopLiveview(): Promise<void> {
+    if (!this.liveviewActive) return;
+    this.liveviewActive = false;
+    try {
+      await ccapiJson(this.profile.host, `${this.base}/shooting/liveview`, {
+        method: 'POST', body: { cameradisplay: 'keep', liveviewsize: 'off' },
+        auth: this.profile.auth, timeoutMs: this.timeoutMs,
+      });
+    } catch { /* best-effort teardown — the body drops live view on disconnect anyway */ }
   }
 
   async startRecording(): Promise<void> { await this.recButton('start'); }
