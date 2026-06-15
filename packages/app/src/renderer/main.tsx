@@ -7,8 +7,10 @@ import { AppShell, type GridCols } from './components/AppShell.js';
 import { CameraPanel } from './components/CameraPanel.js';
 import { AddCameraForm } from './components/AddCameraForm.js';
 import { Multiview } from './components/Multiview.js';
+import { VideoPanel } from './components/VideoPanel.js';
 import { ErrorBoundary } from './components/ErrorBoundary.js';
 import { useCameras } from './hooks/useCameras.js';
+import { useApiBase } from './hooks/useApiBase.js';
 import { usePref } from './hooks/usePref.js';
 import { useReorder } from './hooks/useReorder.js';
 
@@ -46,13 +48,14 @@ function FeedControls({ s }: { s: CameraState }) {
 
 function PopoutMultiview() {
   const { states } = useCameras();
-  const cols = Math.max(1, Math.ceil(Math.sqrt(states.length || 1)));
+  const apiBase = useApiBase();
+  const idKey = [...states.map((s) => s.id)].sort().join('|');
+  // One tile per camera by default; each tile can be reassigned to any camera via its dropdown.
+  // Only reset the slots when the set of cameras changes (not on every state push).
+  const [assign, setAssign] = useState<string[]>(() => states.map((s) => s.id));
+  useEffect(() => { setAssign(states.map((s) => s.id)); }, [idKey]);
   const anyRec = states.some((s) => s.record.recording);
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') window.close(); };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, []);
+  const cols = Math.max(1, Math.ceil(Math.sqrt(assign.length || 1)));
   return (
     <div className="popout" style={{ '--mv-cols': cols } as CSSProperties}>
       <header className="popout__bar">
@@ -64,17 +67,26 @@ function PopoutMultiview() {
           <button className={`btn ${anyRec ? 'btn--stop' : 'btn--rec'}`} onClick={() => window.xyst.recordAll(!anyRec)}>
             {anyRec ? <><span className="sq" /> STOP ALL</> : <><span className="dot" /> REC ALL</>}
           </button>
-          <button className="btn btn--ghost" onClick={() => window.close()} title="Exit fullscreen (Esc)">Exit ✕</button>
         </div>
       </header>
-      <Multiview states={states} labels={false} readOnly
-        tileExtra={(s) => (
-          <>
-            <span className="feedlabel">{s.name ?? s.model ?? s.id}</span>
-            <FeedControls s={s} />
-          </>
-        )}
-        onSelect={() => {}} onReorder={() => {}} onRename={() => {}} />
+      <div className="multiview multiview--popout">
+        {assign.map((cid, i) => {
+          const s = states.find((x) => x.id === cid);
+          return (
+            <div className="mvtile" key={i}>
+              {s && (
+                <VideoPanel cameraId={s.id} source={s.video} apiBase={apiBase}
+                  recording={s.record.recording} onSelect={() => {}} />
+              )}
+              <select className="feedsel" value={cid} aria-label="Camera for this tile"
+                onChange={(e) => setAssign((a) => a.map((x, j) => (j === i ? e.target.value : x)))}>
+                {states.map((c) => <option key={c.id} value={c.id}>{c.name ?? c.model ?? c.id}</option>)}
+              </select>
+              {s && <FeedControls s={s} />}
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }

@@ -388,12 +388,17 @@
 .multiview--popout .video, .multiview--popout .video--tile {
   aspect-ratio: auto; height: 100%; border-radius: 0; margin: 0;
 }
-/* Per-feed overlay: name badge top-left, quick controls bottom-left */
-.feedlabel {
+/* Per-feed overlay: camera-switcher dropdown top-left, quick controls bottom-left */
+.feedsel {
   position: absolute; top: 10px; left: 10px; z-index: 4; max-width: 80%;
-  padding: 5px 10px; border-radius: 8px; font-size: 13px; font-weight: 600; color: #fff;
-  background: rgba(0, 0, 0, 0.6); border: 1px solid rgba(255, 255, 255, 0.18); backdrop-filter: blur(4px);
+  padding: 5px 26px 5px 10px; border-radius: 8px; font-size: 13px; font-weight: 600; color: #fff;
+  background-color: rgba(0, 0, 0, 0.6); border: 1px solid rgba(255, 255, 255, 0.18); backdrop-filter: blur(4px);
+  appearance: none; -webkit-appearance: none; cursor: pointer;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M2 4l4 4 4-4'/></svg>");
+  background-repeat: no-repeat; background-position: right 9px center;
 }
+.feedsel:hover { border-color: rgba(255, 255, 255, 0.4); }
+.feedsel option { color: #111; }
 .feedctl { position: absolute; bottom: 10px; left: 10px; z-index: 4; display: flex; flex-direction: column; gap: 6px; align-items: flex-start; }
 .feedctl__seg { display: inline-flex; gap: 2px; padding: 2px; border-radius: 9px; background: rgba(0, 0, 0, 0.55); border: 1px solid rgba(255, 255, 255, 0.16); backdrop-filter: blur(4px); }
 .feedctl__seg button {

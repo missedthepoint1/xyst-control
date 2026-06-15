@@ -13,28 +13,24 @@ let win: BrowserWindow | null = null;
 let popout: BrowserWindow | null = null;
 
 /**
- * Open (or focus) the borderless fullscreen multiview popout on the same display as the control
- * window. It loads the same renderer with `?popout=multiview`, which renders a chrome-less
- * multiview. ESC closes it. State + preview flow over the existing IPC broadcast / REST API.
+ * Open (or focus) the multiview popout — a normal resizable window (the user can maximize or
+ * green-button it to fullscreen). Opens centered on the same display as the control window and
+ * loads the renderer with `?popout=multiview`. State + preview flow over the existing IPC
+ * broadcast / REST API.
  */
 function openMultiviewPopout(): void {
   if (popout && !popout.isDestroyed()) { popout.focus(); return; }
   const display = win ? screen.getDisplayMatching(win.getBounds()) : screen.getPrimaryDisplay();
-  const { x, y, width, height } = display.bounds;
+  const w = 1280, h = 800;
+  const x = display.bounds.x + Math.round((display.bounds.width - w) / 2);
+  const y = display.bounds.y + Math.round((display.bounds.height - h) / 2);
   popout = new BrowserWindow({
-    x, y, width, height, frame: false, backgroundColor: '#000000', show: false,
+    x, y, width: w, height: h, minWidth: 480, minHeight: 320,
+    backgroundColor: '#000000', show: false, title: 'XYST CONTROL — Multiview',
     webPreferences: { preload: join(import.meta.dirname, '../preload/index.js') },
   });
-  popout.once('ready-to-show', () => {
-    popout?.setSimpleFullScreen(true);
-    app.dock?.hide(); // simpleFullScreen doesn't cover the dock — hide it for a true fullscreen
-    popout?.show();
-    popout?.focus(); // be the active window so the menu bar stays hidden
-  });
-  popout.on('closed', () => { popout = null; app.dock?.show(); });
-  popout.webContents.on('before-input-event', (_e, input) => {
-    if (input.type === 'keyDown' && input.key === 'Escape') popout?.close();
-  });
+  popout.once('ready-to-show', () => { popout?.show(); popout?.focus(); });
+  popout.on('closed', () => { popout = null; });
   const base = process.env.ELECTRON_RENDERER_URL;
   if (base) void popout.loadURL(`${base}?popout=multiview`);
   else void popout.loadFile(join(import.meta.dirname, '../renderer/index.html'), { query: { popout: 'multiview' } });
