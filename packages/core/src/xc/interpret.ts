@@ -1,4 +1,4 @@
-import type { CameraSnapshot, ControlState, ControlId, PowerState } from '../types.js';
+import type { CameraSnapshot, ControlState, ControlId, PowerState, TimecodeState } from '../types.js';
 
 type Map = Record<string, string>;
 
@@ -173,6 +173,17 @@ export function interpretInfo(map: Map): CameraSnapshot {
   };
   const hasPower = power.source !== undefined || power.volt !== undefined;
 
+  // Timecode (`f.timecode.*`, advertised by Cinema EOS bodies). Only set the sub-fields whose
+  // keys are present so a value-only stream delta (the ticking TC) doesn't clobber the
+  // previously-discovered run/df/mode on merge — see XCProtocolDriver.mergeMap.
+  let timecode: TimecodeState | undefined;
+  if ('f.timecode.set' in map) {
+    timecode = { value: map['f.timecode.set'] };
+    if ('f.timecode.run' in map) timecode.run = map['f.timecode.run'];
+    if ('f.timecode.frame' in map) timecode.dropFrame = map['f.timecode.frame'] === 'df';
+    if ('f.timecode.mode' in map) timecode.mode = map['f.timecode.mode'];
+  }
+
   return {
     model: map['c.1.type'],
     exposureMode: map['c.1.exp'],
@@ -184,5 +195,6 @@ export function interpretInfo(map: Map): CameraSnapshot {
     },
     controls,
     power: hasPower ? power : undefined,
+    timecode,
   };
 }

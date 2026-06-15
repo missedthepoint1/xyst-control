@@ -5,7 +5,7 @@ type DetectBox = { type: 'face' | 'eye' | 'object'; x: number; y: number; w: num
 type Guide = { status: boolean; level: number; angle: number; dir: string; x: number; y: number; w: number; h: number };
 export type OsdInfo = {
   iso?: string; shutter?: string; iris?: string; wb?: string; nd?: string;
-  rec: boolean; remaining?: number; battery?: string;
+  tc?: string; rec: boolean; remaining?: number; battery?: string;
 };
 
 export function VideoPanel({ cameraId, source, recording, apiBase, name, osd, showOsd = true, viewAssist = null, onSelect, onFocus }: {
@@ -146,7 +146,10 @@ export function VideoPanel({ cameraId, source, recording, apiBase, name, osd, sh
       )}
       {!onSelect && showOsd && osd && (
         <div className="osd">
-          {osd.rec && <span className="osd__rec"><span className="osd__dot" /> REC{osd.remaining != null ? ` · ${osd.remaining}m` : ''}</span>}
+          <div className="osd__top">
+            {osd.rec && <span className="osd__rec"><span className="osd__dot" /> REC{osd.remaining != null ? ` · ${osd.remaining}m` : ''}</span>}
+            {osd.tc && <span className="osd__tc">{osd.tc}</span>}
+          </div>
           <div className="osd__bar">
             {osd.iso && <span>{osd.iso}</span>}
             {osd.shutter && <span>{osd.shutter}</span>}

@@ -22,6 +22,7 @@ export function buildOsd(state: CameraState): OsdInfo {
       ? (n(c.wbKelvin?.value) != null ? `${c.wbKelvin!.value}K` : 'Kelvin')
       : typeof c.wb?.value === 'string' ? (WB_LABELS[c.wb.value] ?? c.wb.value) : undefined,
     nd: n(c.nd?.value) != null ? (n(c.nd!.value)! > 0 ? `ND ${+(Math.log2(n(c.nd!.value)! / 100)).toFixed(1)}` : 'ND Off') : undefined,
+    tc: state.timecode?.value,
     rec: state.record.recording,
     remaining: state.record.remainingMinutes,
     battery: state.power?.percent != null ? `${state.power.percent}%`

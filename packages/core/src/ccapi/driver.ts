@@ -30,6 +30,12 @@ const SETTING: Partial<Record<ControlId, string>> = {
  * Transport is HTTPS/443 with a self-signed cert (handled in `client.ts`), NOT `http:8080`.
  *  - movie record is `POST shooting/control/recbutton {action:'start'|'stop'}` (recording state
  *    is tracked locally — CCAPI v1 has no simple "am I recording" read).
+ *  - Timecode: CCAPI exposes NO timecode endpoint in any published version (it's absent from
+ *    `shooting/settings`), so `CameraState.timecode` stays undefined for CCAPI bodies and the OSD
+ *    omits TC — unlike the XC driver, which reads `f.timecode.*`. The R6 III *generates* TC
+ *    internally, but doesn't surface it over CCAPI. If a future firmware/endpoint adds it, populate
+ *    `snapshot.timecode` in `interpretCcapi` and it lights up everywhere (OSD/REST/SSE) with no
+ *    other change — same fail-soft, promise-only-what's-advertised contract as the rest of the app.
  *  - Auth caveat: this body's Digest uses a *static nonce* and enforces the nonce-count, so the
  *    one-shot `nc:1` digest in `client.ts` only authenticates a single request before the camera
  *    rejects replays. Run with the camera's CCAPI auth disabled until digest is made stateful

@@ -352,6 +352,10 @@
   background: var(--rec); color: #fff; font-size: 11px; font-weight: 700; padding: 4px 9px; border-radius: 7px;
   letter-spacing: 0.5px; box-shadow: 0 0 14px var(--rec-glow); }
 .osd__rec .osd__dot { width: 8px; height: 8px; border-radius: 50%; background: #fff; }
+.osd__tc { position: absolute; top: 10px; right: 10px; color: #fff; font-size: 12px; font-weight: 700;
+  letter-spacing: 0.5px; padding: 4px 8px; border-radius: 7px; background: rgba(0, 0, 0, 0.46);
+  font-family: ui-monospace, "SF Mono", Menlo, monospace; font-variant-numeric: tabular-nums;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9); }
 .osd__batt { color: #cfd6e6 !important; }
 .osd__bar { position: absolute; left: 0; right: 0; bottom: 0; display: flex; flex-wrap: wrap; justify-content: center;
   gap: 8px 16px; padding: 22px 12px 9px; background: linear-gradient(0deg, rgba(0, 0, 0, 0.62), transparent); }

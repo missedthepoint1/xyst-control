@@ -63,6 +63,24 @@ describe('interpretInfo', () => {
     expect(snap2.record.recording).toBe(true);
   });
 
+  it('reads timecode (value + run mode + drop-frame)', () => {
+    expect(snap.timecode?.value).toBe('01:00:00:00');
+    expect(snap.timecode?.run).toBe('freerun');
+    expect(snap.timecode?.dropFrame).toBe(false);
+    expect(snap.timecode?.mode).toBe('preset');
+  });
+
+  it('emits no timecode when the body does not advertise f.timecode.set', () => {
+    expect(interpretInfo({ 'c.1.type': 'X' }).timecode).toBeUndefined();
+  });
+
+  it('a value-only timecode delta omits the unrelated sub-fields (so merge preserves them)', () => {
+    const delta = interpretInfo({ 'f.timecode.set': '01:00:05:12' });
+    expect(delta.timecode).toEqual({ value: '01:00:05:12' });
+    expect(delta.timecode?.run).toBeUndefined();
+    expect(delta.timecode?.dropFrame).toBeUndefined();
+  });
+
   it('reads shutter angle, focus, face-detect and colorbar', () => {
     expect(snap.controls.shutterAngle?.value).toBe(18000); // 180 deg
     expect(snap.controls.shutterAngle?.list).toContain(36000); // 360 deg

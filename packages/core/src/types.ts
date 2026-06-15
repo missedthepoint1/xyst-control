@@ -38,6 +38,22 @@ export interface PowerState {
   minutes?: number;  // remaining, if reported
 }
 
+/**
+ * Read-only timecode telemetry (display only, like {@link PowerState}). Cinema EOS bodies
+ * advertise this over XC (`f.timecode.*`); CCAPI bodies (R6 III) do not expose a timecode
+ * endpoint in any published version, so it stays undefined there. Not a {@link ControlId}.
+ */
+export interface TimecodeState {
+  /** Current timecode, "HH:MM:SS:FF". */
+  value: string;
+  /** Count-up mode: 'recrun' (advances only while recording) | 'freerun'. */
+  run?: string;
+  /** true = drop-frame (DF), false = non-drop (NDF). */
+  dropFrame?: boolean;
+  /** TC source mode: 'preset' | 'regen'. */
+  mode?: string;
+}
+
 /** The interpreted result of one info.cgi read. */
 export interface CameraSnapshot {
   model?: string;
@@ -45,6 +61,7 @@ export interface CameraSnapshot {
   record: RecordState;
   controls: Partial<Record<ControlId, ControlState>>;
   power?: PowerState;
+  timecode?: TimecodeState;
 }
 
 /** The full externally-visible state of a camera. */

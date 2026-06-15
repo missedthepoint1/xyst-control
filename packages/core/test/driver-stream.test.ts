@@ -44,6 +44,18 @@ describe('XCProtocolDriver streaming', () => {
     expect(drv.getState().model).toBe('Canon EOS C300 Mark III');
   });
 
+  it('ticks timecode from a value-only stream delta while preserving run/drop-frame', async () => {
+    cam = new FakeCamera();
+    const host = await cam.listen();
+    drv = makeDriver(host);
+    await drv.connect();
+    expect(drv.getState().timecode).toMatchObject({ value: '01:00:00:00', run: 'freerun', dropFrame: false });
+    cam.pushDelta({ 'f.timecode.set': '01:00:05:12' }); // the running TC advances
+    await vi.waitFor(() => expect(drv.getState().timecode?.value).toBe('01:00:05:12'), { timeout: 1000 });
+    expect(drv.getState().timecode?.run).toBe('freerun'); // run mode NOT wiped by the tick
+    expect(drv.getState().timecode?.dropFrame).toBe(false);
+  });
+
   it('preserves a control list when a body delta carries only the value', async () => {
     cam = new FakeCamera();
     const host = await cam.listen();

@@ -167,6 +167,11 @@ export class XCProtocolDriver extends EventEmitter implements CameraDriver {
     if ('f.rec.status' in map) {
       this.snapshot.record = { ...this.snapshot.record, ...merged.record };
     }
+    // Merge only the TC sub-fields present in this delta (interpretInfo already omits the rest),
+    // so a value-only tick keeps the previously-known run/df/mode.
+    if (merged.timecode) {
+      this.snapshot.timecode = { ...this.snapshot.timecode, ...merged.timecode };
+    }
     // Deep-merge each control so a value-only delta keeps the previously-discovered
     // list/min/max/mode (interpretInfo emits `undefined` for keys absent from a delta).
     const controls = { ...this.snapshot.controls };
