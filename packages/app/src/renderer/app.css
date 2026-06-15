@@ -15,6 +15,8 @@
 }
 .brand { display: flex; align-items: baseline; gap: 12px; }
 .brand__mark {
+  /* One consistent wordmark font across every theme (themes only recolor it). */
+  font-family: "Futura", "Avenir Next", system-ui;
   font-weight: 800; letter-spacing: 3px; font-size: 19px;
   background: linear-gradient(110deg, #d7ccff 0%, #ff9bd8 42%, #74ecff 100%);
   -webkit-background-clip: text; background-clip: text; color: transparent;

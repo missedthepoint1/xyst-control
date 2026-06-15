@@ -138,11 +138,7 @@
 :root[data-theme="mono"] body, :root[data-theme="tactical"] body {
   font-family: ui-monospace, "SF Mono", Menlo, monospace;
 }
-/* Brand wordmark: geometric for Cinema, technical mono for the instrument themes. */
-:root[data-theme="cinema"] .brand__mark { font-family: "Futura", "Avenir Next", system-ui; letter-spacing: 2px; }
-:root[data-theme="broadcast"] .brand__mark, :root[data-theme="mono"] .brand__mark, :root[data-theme="tactical"] .brand__mark {
-  font-family: ui-monospace, "SF Mono", Menlo, monospace; letter-spacing: 1.5px; font-weight: 700;
-}
+/* (The "XYST CONTROL" wordmark font is fixed in app.css — consistent across all themes.) */
 /* Panel titles geometric for Cinema. */
 :root[data-theme="cinema"] .panel__title { font-family: "Futura", "Avenir Next", system-ui; letter-spacing: 0.5px; }
 
