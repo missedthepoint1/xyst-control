@@ -31,12 +31,23 @@ export class CameraManager extends EventEmitter {
   }
 
   listProfiles(): CameraProfile[] { return [...this.profiles.values()]; }
-  getState(id: string): CameraState | undefined { return this.drivers.get(id)?.getState(); }
+  getState(id: string): CameraState | undefined {
+    const s = this.drivers.get(id)?.getState();
+    return s && this.withUi(s);
+  }
   // Order follows the profile order (persisted), so rename/reorder are reflected everywhere.
   getAllStates(): CameraState[] {
     return this.listProfiles()
       .map((p) => this.drivers.get(p.id)?.getState())
-      .filter((s): s is CameraState => !!s);
+      .filter((s): s is CameraState => !!s)
+      .map((s) => this.withUi(s));
+  }
+
+  /** Overlay profile-owned fields the drivers don't carry (the camera's driver kind + UI settings). */
+  private withUi(s: CameraState): CameraState {
+    const profile = this.profiles.get(s.id);
+    if (!profile) return s;
+    return { ...s, driver: profile.driver, ...(profile.ui ? { ui: profile.ui } : {}) };
   }
 
   async connect(id: string): Promise<void> { await this.driver(id).connect(); }
@@ -207,6 +218,19 @@ export class CameraManager extends EventEmitter {
     if (s) this.emit('state', cameraId, s); // surface the change to the UI
   }
 
+  /**
+   * Persist per-camera UI customization (visible controls + view-assist LUT). The payload is
+   * opaque to core — it's stored on the profile and echoed back in state for the renderer.
+   */
+  async setUiSettings(cameraId: string, ui: import('./types.js').CameraUiSettings): Promise<void> {
+    const profile = this.profiles.get(cameraId);
+    if (!profile) throw new Error(`no camera with id ${cameraId}`);
+    profile.ui = ui;
+    await this.save();
+    const s = this.getState(cameraId);
+    if (s) this.emit('state', cameraId, s);
+  }
+
   /** Relabel a camera (the user-facing name); persists and pushes the change to the UI. */
   async renameCamera(cameraId: string, name: string): Promise<void> {
     const profile = this.profiles.get(cameraId);
@@ -261,7 +285,7 @@ export class CameraManager extends EventEmitter {
       profile.driver === 'r5c' ? new R5CBrowserRemoteDriver(profile)
       : profile.driver === 'ccapi' ? new CcapiDriver(profile)
       : new XCProtocolDriver(profile, this.driverOpts);
-    driver.on('state', (s) => this.emit('state', profile.id, s));
+    driver.on('state', (s) => this.emit('state', profile.id, this.withUi(s)));
     driver.on('status', (st) => this.emit('status', profile.id, st));
     driver.on('error', (e) => this.emit('camera-error', profile.id, e));
     this.drivers.set(profile.id, driver);

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import type { ComponentProps } from 'react';
 import type { ControlState } from '@xyst/core';
 import type { CameraState } from '@xyst/core';
@@ -16,7 +16,11 @@ import { PresetBar } from './PresetBar.js';
 import { VideoPanel } from './VideoPanel.js';
 import { FocusPointBar } from './FocusPointBar.js';
 import { VideoSourceSelect } from './VideoSourceSelect.js';
+import { CameraSettings } from './CameraSettings.js';
 import { useApiBase } from '../hooks/useApiBase.js';
+import { useViewAssist } from '../hooks/useViewAssist.js';
+import { effectiveHidden } from '../panelVisibility.js';
+import { DEFAULT_LOOK } from '../viewAssist.js';
 
 const STATUS_LABEL: Record<string, string> = {
   connected: 'Connected', connecting: 'Connecting…', disconnected: 'Disconnected', error: 'Offline',
@@ -36,6 +40,24 @@ export function CameraPanel({ state, labels = true, onRename, dragHandleProps, d
   const rec = state.record.recording;
   const [advanced, setAdvanced] = useState(false);
   const [showOsd, setShowOsd] = useState(true);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  // View-assist LUT on the live preview, per-camera, persisted in the profile.
+  const hidden = effectiveHidden(state);
+  const show = (cid: string, available?: boolean) => !!available && !hidden.has(cid);
+  const resolvedVa = useViewAssist(state.ui);
+  const vaEnabled = !!state.ui?.viewAssist?.enabled;
+  const toggleViewAssist = () => {
+    const base = { enabled: false, look: DEFAULT_LOOK, intensity: 1, ...state.ui?.viewAssist };
+    window.xyst.setUiSettings(id, { ...(state.ui ?? {}), viewAssist: { ...base, enabled: !base.enabled } });
+  };
+  // Migrate the old localStorage LUT toggle into the profile (one-time per camera).
+  useEffect(() => {
+    if (!state.ui?.viewAssist && localStorage.getItem(`va:${id}`) === '1') {
+      localStorage.removeItem(`va:${id}`);
+      window.xyst.setUiSettings(id, { ...(state.ui ?? {}), viewAssist: { enabled: true, look: DEFAULT_LOOK, intensity: 1 } });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id]);
   const [lastFocus, setLastFocus] = useState<{ x: number; y: number } | null>(null);
   const apiBase = useApiBase();
   const hasVideo = !!state.video && state.video.type !== 'none';
@@ -74,8 +96,8 @@ export function CameraPanel({ state, labels = true, onRename, dragHandleProps, d
   return (
     <section className={`card panel${rec ? ' is-rec' : ''}${isOver ? ' is-drop' : ''}`} {...dragItemProps}>
       <VideoSourceSelect current={state.video} name={label} onChange={(v) => window.xyst.setVideoSource(id, v)} />
-      <VideoPanel cameraId={id} source={state.video} recording={rec} apiBase={apiBase} osd={osd} showOsd={showOsd} onFocus={(x, y) => setLastFocus({ x, y })} />
-      {state.video && state.video.type !== 'none' && (
+      <VideoPanel cameraId={id} source={state.video} recording={rec} apiBase={apiBase} osd={osd} showOsd={showOsd} viewAssist={resolvedVa} onFocus={(x, y) => setLastFocus({ x, y })} />
+      {state.video && state.video.type !== 'none' && !hidden.has('focusPoints') && (
         <FocusPointBar cameraId={id} lastFocus={lastFocus} />
       )}
       <header className="panel__head">
@@ -113,6 +135,13 @@ export function CameraPanel({ state, labels = true, onRename, dragHandleProps, d
         <div className="panel__head-right">
           <button className="panel__remove" title="Remove camera" onClick={() => window.xyst.removeCamera(id)}>×</button>
           <div className="head-actions">
+            {state.video?.type === 'protocol' && (
+              <button type="button" className={`osd-btn${vaEnabled ? ' is-on' : ''}`}
+                title="View assist: re-grade the log preview with the configured LUT (preview only — recording is unchanged)"
+                onClick={toggleViewAssist}>
+                <span className="ic" /> LUT
+              </button>
+            )}
             {hasVideo && (
               <button type="button" className={`osd-btn${showOsd ? ' is-on' : ''}`}
                 title="Show camera info, face/eye boxes and focus guide on the live view"
@@ -120,68 +149,78 @@ export function CameraPanel({ state, labels = true, onRename, dragHandleProps, d
                 <span className="ic" /> OSD
               </button>
             )}
+            <button type="button" className={`osd-btn icon-btn${settingsOpen ? ' is-on' : ''}`}
+              title="Panel settings — LUT and which controls are shown"
+              onClick={() => setSettingsOpen((o) => !o)} aria-label="Panel settings">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+                <circle cx="12" cy="12" r="3" />
+                <path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M19.1 4.9L17 7M7 17l-2.1 2.1" />
+              </svg>
+            </button>
             <RecButton recording={rec} onToggle={() => window.xyst.record(id, !rec)} />
           </div>
         </div>
       </header>
 
+      {settingsOpen && <CameraSettings state={state} onClose={() => setSettingsOpen(false)} />}
+
       <div className="controls">
-        {c.iso?.available && <IsoControl c={c.iso} onSet={(v) => set('iso', v)} />}
-        {c.isoAuto?.available && (
-          <ControlSegment label="ISO mode" value={c.isoAuto.value}
+        {show('iso', c.iso?.available) && <IsoControl c={c.iso!} onSet={(v) => set('iso', v)} />}
+        {show('isoAuto', c.isoAuto?.available) && (
+          <ControlSegment label="ISO mode" value={c.isoAuto!.value}
             options={segOpts(c.isoAuto, { auto: 'Auto', manual: 'Manual' })}
             onChange={(v) => set('isoAuto', v)} />
         )}
-        {c.shutter?.available && (
-          <ShutterControl shutter={c.shutter} angle={c.shutterAngle}
+        {show('shutter', c.shutter?.available) && (
+          <ShutterControl shutter={c.shutter!} angle={c.shutterAngle}
             onSetMode={(m) => set('shutterMode', m)}
             onSetSpeed={(v) => set('shutter', v)}
             onSetAngle={(v) => set('shutterAngle', v)} />
         )}
-        {c.iris?.available && <IrisControl c={c.iris} onSet={(v) => set('iris', v)} />}
-        {c.wb?.available && (
+        {show('iris', c.iris?.available) && <IrisControl c={c.iris!} onSet={(v) => set('iris', v)} />}
+        {show('wb', c.wb?.available) && (
           <WbControl
-            wb={c.wb} kelvin={c.wbKelvin}
+            wb={c.wb!} kelvin={c.wbKelvin}
             onSetWb={(v) => set('wb', v)} onSetKelvin={(v) => set('wbKelvin', v)}
           />
         )}
-        {c.wbCC?.available && (
-          <RangeStepper label="WB CC" value={typeof c.wbCC.value === 'number' ? c.wbCC.value : undefined}
-            min={c.wbCC.min ?? -20} max={c.wbCC.max ?? 20}
+        {show('wbCC', c.wbCC?.available) && (
+          <RangeStepper label="WB CC" value={typeof c.wbCC!.value === 'number' ? c.wbCC!.value : undefined}
+            min={c.wbCC!.min ?? -20} max={c.wbCC!.max ?? 20}
             format={(n) => (n > 0 ? `+${n}` : String(n))} onChange={(v) => set('wbCC', v)} />
         )}
-        {c.nd?.available && <NdControl c={c.nd} onSet={(v) => set('nd', v)} />}
-        {c.ndExtended?.available && (
-          <ControlSegment label="ND adv" value={c.ndExtended.value}
+        {show('nd', c.nd?.available) && <NdControl c={c.nd!} onSet={(v) => set('nd', v)} />}
+        {show('ndExtended', c.ndExtended?.available) && (
+          <ControlSegment label="ND adv" value={c.ndExtended!.value}
             options={segOpts(c.ndExtended, { off: 'Off', on: 'On' })}
             onChange={(v) => set('ndExtended', v)} />
         )}
       </div>
 
-      {(c.focus?.available || c.faceDetect?.available || c.colorbar?.available || c.focusAction?.available) && (
+      {(show('focus', c.focus?.available) || show('faceDetect', c.faceDetect?.available) || show('colorbar', c.colorbar?.available) || show('focusAction', c.focusAction?.available)) && (
         <div className="switches">
-          {c.focus?.available && (
-            <ControlSegment label="Focus" value={c.focus.value}
+          {show('focus', c.focus?.available) && (
+            <ControlSegment label="Focus" value={c.focus!.value}
               options={segOpts(c.focus, { auto: 'AF', manual: 'MF' })}
               onChange={(v) => set('focus', v)} />
           )}
-          {c.faceDetect?.available && (
-            <ControlSegment label="Face" value={c.faceDetect.value}
+          {show('faceDetect', c.faceDetect?.available) && (
+            <ControlSegment label="Face" value={c.faceDetect!.value}
               options={segOpts(c.faceDetect, { off: 'Off', faceonly: 'Face', facecatch: 'Track' })}
               onChange={(v) => set('faceDetect', v)} />
           )}
-          {c.colorbar?.available && (
-            <ControlSegment label="Bars" value={c.colorbar.value}
+          {show('colorbar', c.colorbar?.available) && (
+            <ControlSegment label="Bars" value={c.colorbar!.value}
               options={segOpts(c.colorbar, { off: 'Off', on: 'On' })}
               onChange={(v) => set('colorbar', v)} />
           )}
-          {c.focusAction?.available && (
-            <FocusActions actions={c.focusAction.list ?? []} onAction={(a) => set('focusAction', a)} />
+          {show('focusAction', c.focusAction?.available) && (
+            <FocusActions actions={c.focusAction!.list ?? []} onAction={(a) => set('focusAction', a)} />
           )}
         </div>
       )}
 
-      {(c.afMode?.available || c.afSpeed?.available || c.afResponse?.available || c.afLock?.available || c.awbHold?.available || c.wbAction?.available) && (
+      {!hidden.has('advanced') && (c.afMode?.available || c.afSpeed?.available || c.afResponse?.available || c.afLock?.available || c.awbHold?.available || c.wbAction?.available) && (
         <div className="advanced">
           <button type="button" className="advanced__toggle" onClick={() => setAdvanced((a) => !a)}>
             {advanced ? '▾' : '▸'} Advanced
@@ -225,7 +264,7 @@ export function CameraPanel({ state, labels = true, onRename, dragHandleProps, d
         </div>
       )}
 
-      <PresetBar cameraId={state.id} presets={presets} />
+      {!hidden.has('presets') && <PresetBar cameraId={state.id} presets={presets} />}
     </section>
   );
 }

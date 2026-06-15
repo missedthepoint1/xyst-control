@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import type { VideoSource } from '@xyst/core';
+import { applyViewAssist, type ResolvedViewAssist } from '../viewAssist.js';
 type DetectBox = { type: 'face' | 'eye' | 'object'; x: number; y: number; w: number; h: number; main: boolean; track: boolean };
 type Guide = { status: boolean; level: number; angle: number; dir: string; x: number; y: number; w: number; h: number };
 export type OsdInfo = {
@@ -7,13 +8,17 @@ export type OsdInfo = {
   rec: boolean; remaining?: number; battery?: string;
 };
 
-export function VideoPanel({ cameraId, source, recording, apiBase, name, osd, showOsd = true, onSelect, onFocus }: {
+export function VideoPanel({ cameraId, source, recording, apiBase, name, osd, showOsd = true, viewAssist = null, onSelect, onFocus }: {
   cameraId: string; source?: VideoSource; recording: boolean; apiBase: string;
-  name?: string; osd?: OsdInfo; showOsd?: boolean; onSelect?: () => void; onFocus?: (x: number, y: number) => void;
+  name?: string; osd?: OsdInfo; showOsd?: boolean; viewAssist?: ResolvedViewAssist | null; onSelect?: () => void; onFocus?: (x: number, y: number) => void;
 }) {
   const type = source?.type ?? 'none';
   const imgRef = useRef<HTMLImageElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  // Read the live toggle inside the frame-load callback without restarting the poll loop.
+  const vaRef = useRef(viewAssist);
+  vaRef.current = viewAssist;
   const [err, setErr] = useState(false);
   const [mark, setMark] = useState<{ x: number; y: number } | null>(null);
   const [boxes, setBoxes] = useState<DetectBox[]>([]);
@@ -24,7 +29,16 @@ export function VideoPanel({ cameraId, source, recording, apiBase, name, osd, sh
     const img = imgRef.current; if (!img) return;
     let stopped = false; let timer: ReturnType<typeof setTimeout> | undefined;
     const load = () => { if (!stopped) img.src = `${apiBase}/api/cameras/${cameraId}/preview.jpg?t=${Date.now()}`; };
-    const onLoad = () => { setErr(false); timer = setTimeout(load, 90); };
+    const onLoad = () => {
+      setErr(false);
+      // Re-grade in a try/catch so a readback failure (e.g. a tainted canvas) can never stop the
+      // poll loop; schedule the next frame regardless.
+      if (vaRef.current && canvasRef.current) {
+        try { applyViewAssist(img, canvasRef.current, vaRef.current.transform, vaRef.current.intensity); }
+        catch { /* leave the drawn frame */ }
+      }
+      timer = setTimeout(load, 90);
+    };
     const onError = () => { setErr(true); timer = setTimeout(load, 1000); };
     img.addEventListener('load', onLoad); img.addEventListener('error', onError);
     load();
@@ -80,7 +94,16 @@ export function VideoPanel({ cameraId, source, recording, apiBase, name, osd, sh
   return (
     <>
     <div className={`video${recording ? ' video--rec' : ''}${onSelect ? ' video--tile' : ''}`} onClick={tap}>
-      {type === 'protocol' && <img ref={imgRef} className="video__img" alt="" style={err ? { visibility: 'hidden' } : undefined} />}
+      {type === 'protocol' && (
+        <>
+          {/* The img is always the frame loader; when view assist is on it's hidden (still loads)
+              and the re-graded canvas is shown instead. crossOrigin lets the CORS-enabled preview
+              be drawn to a canvas without tainting it (needed for the view-assist pixel readback). */}
+          <img ref={imgRef} className="video__img" alt="" crossOrigin="anonymous"
+            style={viewAssist ? { display: 'none' } : (err ? { visibility: 'hidden' } : undefined)} />
+          {viewAssist && <canvas ref={canvasRef} className="video__img" style={err ? { visibility: 'hidden' } : undefined} />}
+        </>
+      )}
       {type === 'capture' && <video ref={videoRef} className="video__img" autoPlay muted playsInline />}
       {(type === 'none' || err) && (
         <div className="video__placeholder">

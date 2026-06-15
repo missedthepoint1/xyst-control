@@ -51,11 +51,13 @@ export interface CameraSnapshot {
 export interface CameraState extends CameraSnapshot {
   id: string;
   name: string;
+  driver?: CameraProfile['driver'];
   status: ConnectionStatus;
   updatedAt: number;
   lastError?: string;
   video?: VideoSource;
   focusPoints?: FocusPoint[];
+  ui?: CameraUiSettings;
 }
 
 export interface CameraAuth {
@@ -69,6 +71,26 @@ export interface PreviewFrame { data: Uint8Array; contentType: string; }
 /** Per-camera video source for the live-view panel (decoupled from control). */
 export interface VideoSource { type: 'none' | 'protocol' | 'capture'; deviceId?: string; }
 
+/**
+ * Per-camera UI customization, persisted in the profile but **opaque to core** — the manager
+ * only stores and echoes it; nothing in core interprets it. The renderer owns its meaning
+ * (which controls to show, the live-view view-assist LUT).
+ */
+export interface CameraUiSettings {
+  /** Control/section ids hidden in the camera panel. Unset = renderer defaults (driver-derived). */
+  hiddenControls?: string[];
+  /** Live-view view-assist (log → 709) settings. */
+  viewAssist?: {
+    enabled: boolean;
+    /** Built-in look id (e.g. 'clog2_709') or 'cube' for an imported 3D LUT. */
+    look: string;
+    /** Blend strength 0..1 (0 = original frame, 1 = fully graded). */
+    intensity: number;
+    /** Imported .cube reference (display name + stored filename under userData/luts). */
+    cube?: { name: string; file: string };
+  };
+}
+
 export interface CameraProfile {
   id: string;
   name: string;
@@ -78,6 +100,7 @@ export interface CameraProfile {
   presets?: CameraPreset[];
   focusPoints?: FocusPoint[];
   video?: VideoSource;
+  ui?: CameraUiSettings;
 }
 
 /** A set of control values to apply together (preset payload / bulk apply). */

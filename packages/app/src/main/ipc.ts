@@ -1,6 +1,7 @@
 import { ipcMain, type BrowserWindow } from 'electron';
 import type { CameraManager } from '@xyst/core';
-import type { ControlId } from '@xyst/core';
+import type { ControlId, CameraUiSettings } from '@xyst/core';
+import { importLut, readLut } from './lut.js';
 
 export function registerIpc(mgr: CameraManager, getWindow: () => BrowserWindow | null): void {
   ipcMain.handle('camera:list', () => mgr.listProfiles());
@@ -20,6 +21,9 @@ export function registerIpc(mgr: CameraManager, getWindow: () => BrowserWindow |
   ipcMain.handle('camera:rename', (_e, id: string, name: string) => mgr.renameCamera(id, name));
   ipcMain.handle('camera:reorder', (_e, ids: string[]) => mgr.reorderCameras(ids));
   ipcMain.handle('camera:setVideoSource', (_e, id: string, video: unknown) => mgr.setVideoSource(id, video as never));
+  ipcMain.handle('camera:setUiSettings', (_e, id: string, ui: CameraUiSettings) => mgr.setUiSettings(id, ui));
+  ipcMain.handle('lut:import', () => importLut(getWindow()));
+  ipcMain.handle('lut:read', (_e, file: string) => readLut(file));
   ipcMain.handle('camera:setFocusPoint', (_e, id: string, x: number, y: number) => mgr.setFocusPoint(id, x, y));
   ipcMain.handle('camera:focusPoints', (_e, id: string) => mgr.listFocusPoints(id));
   ipcMain.handle('camera:saveFocusPoint', (_e, id: string, name: string, x: number, y: number) => mgr.saveFocusPoint(id, name, x, y));
