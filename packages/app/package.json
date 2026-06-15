@@ -1,6 +1,6 @@
 {
   "name": "@xyst/app",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Wired-IP camera control for live production (Canon Cinema EOS + CCAPI)",
   "author": "XYST <zak@xyst.la>",
   "type": "module",
