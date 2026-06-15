@@ -1,5 +1,10 @@
 <div align="center">
 
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/brand/xyst-white.png">
+  <img src="docs/brand/xyst-dark.png" alt="XYST" width="220">
+</picture>
+
 # XYST CONTROL
 
 ### Wired-IP camera control for Canon Cinema EOS
