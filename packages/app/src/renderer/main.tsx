@@ -49,9 +49,11 @@ function PopoutMultiview() {
       return states[i % Math.max(states.length, 1)]?.id ?? '';
     }));
   }, [boxCount, idKey]);
-  const cols = Math.max(1, Math.ceil(Math.sqrt(boxCount)));
+  // Grid that keeps each cell ~16:9 inside the 16:9 window: 1→1×1, 2→2×1, 3-4→2×2, 5-8→4×2.
+  const cols = boxCount <= 1 ? 1 : boxCount <= 4 ? 2 : 4;
+  const rows = boxCount <= 2 ? 1 : 2;
   return (
-    <div className="popout" style={{ '--mv-cols': cols } as CSSProperties}>
+    <div className="popout" style={{ '--mv-cols': cols, '--mv-rows': rows } as CSSProperties}>
       <select className="boxcount" value={boxCount} aria-label="Number of feeds"
         onChange={(e) => setBoxPref(Number(e.target.value))}>
         {[1, 2, 3, 4, 5, 6, 7, 8].map((n) => <option key={n} value={n}>{n} {n === 1 ? 'feed' : 'feeds'}</option>)}
@@ -63,7 +65,7 @@ function PopoutMultiview() {
             <div className="mvtile" key={i}>
               {s && (
                 <VideoPanel cameraId={s.id} source={s.video} apiBase={apiBase}
-                  recording={s.record.recording} cover showOsd={false} />
+                  recording={s.record.recording} showOsd={false} />
               )}
               <select className="feedsel" value={cid} aria-label="Camera for this tile"
                 onChange={(e) => setAssign((a) => a.map((x, j) => (j === i ? e.target.value : x)))}>

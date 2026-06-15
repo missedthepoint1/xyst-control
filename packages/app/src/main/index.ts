@@ -21,14 +21,16 @@ let popout: BrowserWindow | null = null;
 function openMultiviewPopout(): void {
   if (popout && !popout.isDestroyed()) { popout.focus(); return; }
   const display = win ? screen.getDisplayMatching(win.getBounds()) : screen.getPrimaryDisplay();
-  const w = 1280, h = 800;
+  const w = 1280, h = 720 + 28; // +title bar so the 16:9 content area is 1280x720
   const x = display.bounds.x + Math.round((display.bounds.width - w) / 2);
   const y = display.bounds.y + Math.round((display.bounds.height - h) / 2);
   popout = new BrowserWindow({
-    x, y, width: w, height: h, minWidth: 480, minHeight: 320,
+    x, y, width: w, height: h, minWidth: 480, minHeight: 270,
     backgroundColor: '#000000', show: false, title: 'XYST CONTROL — Multiview',
     webPreferences: { preload: join(import.meta.dirname, '../preload/index.js') },
   });
+  // Lock to 16:9, excluding the ~28pt title bar so the CONTENT area is a true 16:9.
+  popout.setAspectRatio(16 / 9, { width: 0, height: 28 });
   popout.once('ready-to-show', () => { popout?.show(); popout?.focus(); });
   popout.on('closed', () => { popout = null; });
   const base = process.env.ELECTRON_RENDERER_URL;

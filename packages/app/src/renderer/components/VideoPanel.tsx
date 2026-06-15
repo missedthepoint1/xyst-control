@@ -8,11 +8,9 @@ export type OsdInfo = {
   rec: boolean; remaining?: number; battery?: string;
 };
 
-export function VideoPanel({ cameraId, source, recording, apiBase, name, osd, showOsd = true, viewAssist = null, cover = false, onSelect, onFocus }: {
+export function VideoPanel({ cameraId, source, recording, apiBase, name, osd, showOsd = true, viewAssist = null, onSelect, onFocus }: {
   cameraId: string; source?: VideoSource; recording: boolean; apiBase: string;
   name?: string; osd?: OsdInfo; showOsd?: boolean; viewAssist?: ResolvedViewAssist | null;
-  /** Fill the tile (object-fit: cover) instead of letterboxing; touch-focus math adapts. */
-  cover?: boolean;
   onSelect?: () => void; onFocus?: (x: number, y: number) => void;
 }) {
   const type = source?.type ?? 'none';
@@ -79,22 +77,13 @@ export function VideoPanel({ cameraId, source, recording, apiBase, name, osd, sh
     let nw = 16, nh = 9;
     if (media instanceof HTMLImageElement && media.naturalWidth) { nw = media.naturalWidth; nh = media.naturalHeight; }
     else if (media instanceof HTMLVideoElement && media.videoWidth) { nw = media.videoWidth; nh = media.videoHeight; }
+    const cAR = rect.width / rect.height, mAR = nw / nh;
     let dispW: number, dispH: number, offX: number, offY: number;
-    if (cover) {
-      // object-fit: cover — the image is scaled to fill the box and cropped; the box sits inside
-      // the (larger) scaled image, so every click maps to a point within the full frame.
-      const scale = Math.max(rect.width / nw, rect.height / nh);
-      dispW = nw * scale; dispH = nh * scale;
-      offX = (rect.width - dispW) / 2; offY = (rect.height - dispH) / 2;
-    } else {
-      // object-fit: contain — the image is letterboxed within the box.
-      const cAR = rect.width / rect.height, mAR = nw / nh;
-      if (mAR > cAR) { dispW = rect.width; dispH = rect.width / mAR; offX = 0; offY = (rect.height - dispH) / 2; }
-      else { dispH = rect.height; dispW = rect.height * mAR; offY = 0; offX = (rect.width - dispW) / 2; }
-    }
+    if (mAR > cAR) { dispW = rect.width; dispH = rect.width / mAR; offX = 0; offY = (rect.height - dispH) / 2; }
+    else { dispH = rect.height; dispW = rect.height * mAR; offY = 0; offX = (rect.width - dispW) / 2; }
     const px = e.clientX - rect.left - offX, py = e.clientY - rect.top - offY;
-    if (!cover && (px < 0 || py < 0 || px > dispW || py > dispH)) return; // contain: outside the active image
-    const nx = Math.min(1, Math.max(0, px / dispW)), ny = Math.min(1, Math.max(0, py / dispH));
+    if (px < 0 || py < 0 || px > dispW || py > dispH) return; // outside the active image
+    const nx = px / dispW, ny = py / dispH;
     void window.xyst.setFocusPoint(cameraId, nx, ny);
     onFocus?.(nx, ny);
     setMark({ x: ((offX + px) / rect.width) * 100, y: ((offY + py) / rect.height) * 100 });
@@ -111,12 +100,12 @@ export function VideoPanel({ cameraId, source, recording, apiBase, name, osd, sh
           {/* The img is always the frame loader; when view assist is on it's hidden (still loads)
               and the re-graded canvas is shown instead. crossOrigin lets the CORS-enabled preview
               be drawn to a canvas without tainting it (needed for the view-assist pixel readback). */}
-          <img ref={imgRef} className={`video__img${cover ? ' video__img--cover' : ''}`} alt="" crossOrigin="anonymous"
+          <img ref={imgRef} className="video__img" alt="" crossOrigin="anonymous"
             style={viewAssist ? { display: 'none' } : (err ? { visibility: 'hidden' } : undefined)} />
-          {viewAssist && <canvas ref={canvasRef} className={`video__img${cover ? ' video__img--cover' : ''}`} style={err ? { visibility: 'hidden' } : undefined} />}
+          {viewAssist && <canvas ref={canvasRef} className="video__img" style={err ? { visibility: 'hidden' } : undefined} />}
         </>
       )}
-      {type === 'capture' && <video ref={videoRef} className={`video__img${cover ? ' video__img--cover' : ''}`} autoPlay muted playsInline />}
+      {type === 'capture' && <video ref={videoRef} className="video__img" autoPlay muted playsInline />}
       {(type === 'none' || err) && (
         <div className="video__placeholder">
           {type === 'none' ? (

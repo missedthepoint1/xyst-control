@@ -377,13 +377,12 @@
 .multiview--popout {
   height: 100%; width: 100%; margin: 0; padding: 0; gap: 0;
   grid-template-columns: repeat(var(--mv-cols, 2), 1fr);
-  grid-auto-rows: 1fr; align-content: stretch; align-items: stretch;
+  grid-template-rows: repeat(var(--mv-rows, 1), 1fr); align-content: stretch; align-items: stretch;
 }
 .multiview--popout .mvtile { min-width: 0; min-height: 0; }
 .multiview--popout .video, .multiview--popout .video--tile {
   aspect-ratio: auto; height: 100%; border-radius: 0; margin: 0; border: none;
 }
-.video__img--cover { object-fit: cover; }
 /* Box-count selector, floating top-right */
 .boxcount {
   position: absolute; top: 10px; right: 10px; z-index: 6;
