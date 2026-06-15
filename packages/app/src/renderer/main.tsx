@@ -49,10 +49,10 @@ function PopoutMultiview() {
       return states[i % Math.max(states.length, 1)]?.id ?? '';
     }));
   }, [boxCount, idKey]);
-  // Square-ish grid so cells stay 16:9 inside the 16:9 window (feeds fill, no letterbox):
-  // 1→1×1, 2→2×1, 3-4→2×2, 5-8→3×3 (empty cells instead of black bars on every feed).
-  const cols = boxCount <= 1 ? 1 : boxCount <= 4 ? 2 : 3;
-  const rows = boxCount <= 2 ? 1 : boxCount <= 4 ? 2 : 3;
+  // Square grid so every cell is 16:9 inside the 16:9 window (feeds fill, no letterbox):
+  // 1→1×1, 2-4→2×2, 5-8→3×3 (empty cells instead of black bars on every feed).
+  const grid = boxCount <= 1 ? 1 : boxCount <= 4 ? 2 : 3;
+  const cols = grid, rows = grid;
   return (
     <div className="popout" style={{ '--mv-cols': cols, '--mv-rows': rows } as CSSProperties}>
       <select className="boxcount" value={boxCount} aria-label="Number of feeds"
