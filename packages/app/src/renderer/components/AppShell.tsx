@@ -2,11 +2,11 @@ import type { ReactNode } from 'react';
 
 export type GridCols = 'full' | 'two' | 'quad';
 
-export function AppShell({ children, view, onView, cols, onCols, labels, onLabels, onAdd, recActive, onToggleRec }: {
+export function AppShell({ children, view, onView, cols, onCols, labels, onLabels, onAdd, recActive, onToggleRec, onPopout }: {
   children: ReactNode; view: 'panels' | 'multiview'; onView: (v: 'panels' | 'multiview') => void;
   cols: GridCols; onCols: (c: GridCols) => void;
   labels: boolean; onLabels: () => void;
-  onAdd: () => void; recActive: boolean; onToggleRec: () => void;
+  onAdd: () => void; recActive: boolean; onToggleRec: () => void; onPopout?: () => void;
 }) {
   return (
     <div className="app">
@@ -32,6 +32,13 @@ export function AppShell({ children, view, onView, cols, onCols, labels, onLabel
                 <svg viewBox="0 0 16 16" aria-hidden="true"><rect x="1.5" y="1.5" width="6" height="6" rx="1.2" /><rect x="8.5" y="1.5" width="6" height="6" rx="1.2" /><rect x="1.5" y="8.5" width="6" height="6" rx="1.2" /><rect x="8.5" y="8.5" width="6" height="6" rx="1.2" /></svg>
               </button>
             </div>
+          )}
+          {view === 'multiview' && onPopout && (
+            <button className="btn btn--icon" onClick={onPopout} title="Pop out fullscreen multiview">
+              <svg viewBox="0 0 24 24" aria-hidden="true" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M9 4H5a1 1 0 0 0-1 1v4M15 4h4a1 1 0 0 1 1 1v4M9 20H5a1 1 0 0 1-1-1v-4M15 20h4a1 1 0 0 0 1-1v-4" />
+              </svg>
+            </button>
           )}
           <button className={`btn btn--icon${labels ? ' is-on' : ''}`} onClick={onLabels} title={labels ? 'Hide labels' : 'Show labels'}>
             <svg viewBox="0 0 24 24" aria-hidden="true" strokeLinejoin="round">

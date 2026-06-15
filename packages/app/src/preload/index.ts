@@ -30,6 +30,7 @@ const api = {
   setVideoSource: (id: string, video: { type: string; deviceId?: string }) =>
     ipcRenderer.invoke('camera:setVideoSource', id, video),
   setUiSettings: (id: string, ui: CameraUiSettings) => ipcRenderer.invoke('camera:setUiSettings', id, ui),
+  openMultiview: () => ipcRenderer.invoke('window:openMultiview'),
   importLut: () => ipcRenderer.invoke('lut:import') as Promise<{ name: string; file: string } | null>,
   readLut: (file: string) => ipcRenderer.invoke('lut:read', file) as Promise<string>,
   setFocusPoint: (id: string, x: number, y: number) => ipcRenderer.invoke('camera:setFocusPoint', id, x, y),

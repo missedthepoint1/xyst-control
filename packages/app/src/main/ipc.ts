@@ -1,4 +1,4 @@
-import { ipcMain, type BrowserWindow } from 'electron';
+import { ipcMain, BrowserWindow } from 'electron';
 import type { CameraManager } from '@xyst/core';
 import type { ControlId, CameraUiSettings } from '@xyst/core';
 import { importLut, readLut } from './lut.js';
@@ -30,13 +30,14 @@ export function registerIpc(mgr: CameraManager, getWindow: () => BrowserWindow |
   ipcMain.handle('camera:recallFocusPoint', (_e, id: string, pointId: string) => mgr.recallFocusPoint(id, pointId));
   ipcMain.handle('camera:deleteFocusPoint', (_e, id: string, pointId: string) => mgr.deleteFocusPoint(id, pointId));
 
-  const push = (id: string, state: unknown) =>
-    getWindow()?.webContents.send('camera:state', id, state);
+  // Broadcast to every window (main + the fullscreen multiview popout) so both stay live.
+  const broadcast = (channel: string, ...args: unknown[]) => {
+    for (const w of BrowserWindow.getAllWindows()) w.webContents.send(channel, ...args);
+  };
+  const push = (id: string, state: unknown) => broadcast('camera:state', id, state);
   mgr.on('state', push);
   mgr.on('status', (id) => { const s = mgr.getState(id); if (s) push(id, s); });
-  mgr.on('presets', (id: string, presets: unknown) =>
-    getWindow()?.webContents.send('camera:presets', id, presets));
-  mgr.on('focusPoints', (id: string, pts: unknown) =>
-    getWindow()?.webContents.send('camera:focusPoints', id, pts));
-  mgr.on('removed', (id: string) => getWindow()?.webContents.send('camera:removed', id));
+  mgr.on('presets', (id: string, presets: unknown) => broadcast('camera:presets', id, presets));
+  mgr.on('focusPoints', (id: string, pts: unknown) => broadcast('camera:focusPoints', id, pts));
+  mgr.on('removed', (id: string) => broadcast('camera:removed', id));
 }

@@ -1,4 +1,4 @@
-import { app, BrowserWindow, Menu, ipcMain, session } from 'electron';
+import { app, BrowserWindow, Menu, ipcMain, screen, session } from 'electron';
 import { join } from 'node:path';
 import { CameraManager, createApiServer } from '@xyst/core';
 import { resolveConfigPath } from './config-path.js';
@@ -10,6 +10,35 @@ import { resolveApiPort } from './api-port.js';
 app.setName('XYST CONTROL');
 
 let win: BrowserWindow | null = null;
+let popout: BrowserWindow | null = null;
+
+/**
+ * Open (or focus) the borderless fullscreen multiview popout on the same display as the control
+ * window. It loads the same renderer with `?popout=multiview`, which renders a chrome-less
+ * multiview. ESC closes it. State + preview flow over the existing IPC broadcast / REST API.
+ */
+function openMultiviewPopout(): void {
+  if (popout && !popout.isDestroyed()) { popout.focus(); return; }
+  const display = win ? screen.getDisplayMatching(win.getBounds()) : screen.getPrimaryDisplay();
+  const { x, y, width, height } = display.bounds;
+  popout = new BrowserWindow({
+    x, y, width, height, frame: false, backgroundColor: '#000000', show: false,
+    webPreferences: { preload: join(import.meta.dirname, '../preload/index.js') },
+  });
+  popout.once('ready-to-show', () => {
+    popout?.setSimpleFullScreen(true);
+    app.dock?.hide(); // simpleFullScreen doesn't cover the dock — hide it for a true fullscreen
+    popout?.show();
+    popout?.focus(); // be the active window so the menu bar stays hidden
+  });
+  popout.on('closed', () => { popout = null; app.dock?.show(); });
+  popout.webContents.on('before-input-event', (_e, input) => {
+    if (input.type === 'keyDown' && input.key === 'Escape') popout?.close();
+  });
+  const base = process.env.ELECTRON_RENDERER_URL;
+  if (base) void popout.loadURL(`${base}?popout=multiview`);
+  else void popout.loadFile(join(import.meta.dirname, '../renderer/index.html'), { query: { popout: 'multiview' } });
+}
 
 function installMenu(): void {
   const isMac = process.platform === 'darwin';
@@ -78,6 +107,7 @@ async function main(): Promise<void> {
   const apiPort = await listenWithFallback(api, resolveApiPort(), '127.0.0.1');
   const apiBase = apiPort ? `http://127.0.0.1:${apiPort}` : '';
   ipcMain.handle('app:apiBase', () => apiBase);
+  ipcMain.handle('window:openMultiview', () => openMultiviewPopout());
   installMenu();
   // In dev the dock shows Electron's icon (packaged apps use the .icns automatically) —
   // set it from the build PNG so the dev runtime also shows the XYST lens.

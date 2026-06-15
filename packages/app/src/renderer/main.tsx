@@ -1,5 +1,5 @@
 import { createRoot } from 'react-dom/client';
-import { useState } from 'react';
+import { useState, useEffect, type CSSProperties } from 'react';
 import './theme.css';
 import './app.css';
 import { AppShell, type GridCols } from './components/AppShell.js';
@@ -10,6 +10,24 @@ import { ErrorBoundary } from './components/ErrorBoundary.js';
 import { useCameras } from './hooks/useCameras.js';
 import { usePref } from './hooks/usePref.js';
 import { useReorder } from './hooks/useReorder.js';
+
+// A second window opened with ?popout=multiview renders just the fullscreen multiview.
+const isPopout = new URLSearchParams(window.location.search).get('popout') === 'multiview';
+
+function PopoutMultiview() {
+  const { states } = useCameras();
+  const cols = Math.max(1, Math.ceil(Math.sqrt(states.length || 1)));
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') window.close(); };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
+  return (
+    <div className="popout" style={{ '--mv-cols': cols } as CSSProperties}>
+      <Multiview states={states} labels readOnly onSelect={() => {}} onReorder={() => {}} onRename={() => {}} />
+    </div>
+  );
+}
 
 function App() {
   const { states, refresh } = useCameras();
@@ -45,6 +63,7 @@ function App() {
       onAdd={() => setAdding(true)}
       recActive={anyRec}
       onToggleRec={() => window.xyst.recordAll(!anyRec)}
+      onPopout={() => window.xyst.openMultiview()}
     >
       {selected ? (
         <div className="single">
@@ -77,5 +96,5 @@ function App() {
   );
 }
 createRoot(document.getElementById('root')!).render(
-  <ErrorBoundary><App /></ErrorBoundary>,
+  <ErrorBoundary>{isPopout ? <PopoutMultiview /> : <App />}</ErrorBoundary>,
 );
