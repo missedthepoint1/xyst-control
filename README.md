@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="docs/brand/xyst-gradient.png" alt="XYST" width="150">
+<img src="docs/brand/xyst-gradient.png" alt="XYST" width="96">
 
 # XYST CONTROL
 
