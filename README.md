@@ -186,8 +186,6 @@ connection reload in Companion to appear in dropdowns.
 
 </details>
 
----
-
 <div align="center">
-<sub>Architecture, protocol details, and the build plan live in <a href="CLAUDE.md"><code>CLAUDE.md</code></a>.</sub>
+<sub>© XYST · Canon Cinema EOS control for live production</sub>
 </div>

@@ -11,3 +11,6 @@ config/cameras.json
 *.tsbuildinfo
 pkg/
 *.tgz
+
+# AI project instructions (local only)
+CLAUDE.md
