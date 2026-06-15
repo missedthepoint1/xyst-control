@@ -7,11 +7,13 @@ import { XCProtocolDriver, type XCDriverOptions } from './xc/driver.js';
 import { R5CBrowserRemoteDriver } from './r5c/driver.js';
 import { CcapiDriver } from './ccapi/driver.js';
 
-interface ConfigFile { cameras: CameraProfile[] }
+interface ConfigFile { cameras: CameraProfile[]; osd?: boolean }
 
 export class CameraManager extends EventEmitter {
   private profiles = new Map<string, CameraProfile>();
   private drivers = new Map<string, CameraDriver>();
+  // App-level "show OSD on the multiview feeds" toggle — shared so the popout and Companion agree.
+  private osd = false;
   constructor(private configPath: string, private driverOpts: XCDriverOptions = {}) {
     super();
   }
@@ -28,6 +30,15 @@ export class CameraManager extends EventEmitter {
       this.profiles.set(p.id, p);
       this.makeDriver(p);
     }
+    this.osd = cfg.osd ?? false;
+  }
+
+  /** App-level OSD-on-multiview flag (shared with the popout + Companion). */
+  getOsd(): boolean { return this.osd; }
+  async setOsd(value: boolean): Promise<void> {
+    this.osd = !!value;
+    await this.save();
+    this.emit('osd', this.osd);
   }
 
   listProfiles(): CameraProfile[] { return [...this.profiles.values()]; }
@@ -298,7 +309,7 @@ export class CameraManager extends EventEmitter {
   }
 
   private async save(): Promise<void> {
-    const cfg: ConfigFile = { cameras: this.listProfiles() };
+    const cfg: ConfigFile = { cameras: this.listProfiles(), osd: this.osd };
     await writeFile(this.configPath, JSON.stringify(cfg, null, 2));
   }
 }

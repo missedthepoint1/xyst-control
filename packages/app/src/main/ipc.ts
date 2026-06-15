@@ -22,6 +22,8 @@ export function registerIpc(mgr: CameraManager, getWindow: () => BrowserWindow |
   ipcMain.handle('camera:reorder', (_e, ids: string[]) => mgr.reorderCameras(ids));
   ipcMain.handle('camera:setVideoSource', (_e, id: string, video: unknown) => mgr.setVideoSource(id, video as never));
   ipcMain.handle('camera:setUiSettings', (_e, id: string, ui: CameraUiSettings) => mgr.setUiSettings(id, ui));
+  ipcMain.handle('osd:get', () => mgr.getOsd());
+  ipcMain.handle('osd:set', (_e, value: boolean) => mgr.setOsd(value));
   ipcMain.handle('lut:import', () => importLut(getWindow()));
   ipcMain.handle('lut:read', (_e, file: string) => readLut(file));
   ipcMain.handle('camera:setFocusPoint', (_e, id: string, x: number, y: number) => mgr.setFocusPoint(id, x, y));
@@ -40,4 +42,5 @@ export function registerIpc(mgr: CameraManager, getWindow: () => BrowserWindow |
   mgr.on('presets', (id: string, presets: unknown) => broadcast('camera:presets', id, presets));
   mgr.on('focusPoints', (id: string, pts: unknown) => broadcast('camera:focusPoints', id, pts));
   mgr.on('removed', (id: string) => broadcast('camera:removed', id));
+  mgr.on('osd', (v: unknown) => broadcast('osd:state', v));
 }

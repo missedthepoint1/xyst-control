@@ -23,6 +23,13 @@ export function buildFeedbacks(store: CameraStore): CompanionFeedbackDefinitions
       options: [],
       callback: () => store.anyRecording(),
     },
+    osd_active: {
+      type: 'boolean',
+      name: 'OSD shown on multiview',
+      defaultStyle: { bgcolor: combineRgb(99, 78, 255), color: combineRgb(255, 255, 255) },
+      options: [],
+      callback: () => store.osd(),
+    },
     connected: {
       type: 'boolean',
       name: 'Camera is connected',

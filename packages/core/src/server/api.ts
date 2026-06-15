@@ -96,6 +96,15 @@ export function createApiServer(mgr: CameraManager, _opts: ApiServerOptions = {}
     res.end(Buffer.from(frame.data));
   });
 
+  // App-level "show OSD on the multiview feeds" toggle (shared by the popout + Companion).
+  router.add('GET', '/api/osd', () => ({ osd: mgr.getOsd() }));
+  router.add('POST', '/api/osd', async ({ body }) => {
+    const b = (body ?? {}) as { value?: boolean; toggle?: boolean };
+    const value = b.toggle ? !mgr.getOsd() : !!b.value;
+    await mgr.setOsd(value);
+    return { osd: value };
+  });
+
   router.add('GET', '/api/events', ({ req, res }) => {
     res.writeHead(200, {
       'content-type': 'text/event-stream',
@@ -104,14 +113,17 @@ export function createApiServer(mgr: CameraManager, _opts: ApiServerOptions = {}
       'access-control-allow-origin': '*',
     });
     res.write('event: hello\ndata: {}\n\n');
+    sse(res, 'osd', { osd: mgr.getOsd() }); // initial app-level state
     const onState = (id: string, s: unknown) => sse(res, 'state', { cameraId: id, state: s });
     const onStatus = (id: string, st: unknown) => sse(res, 'status', { cameraId: id, status: st });
     const onPresets = (id: string, p: unknown) => sse(res, 'presets', { cameraId: id, presets: p });
     const onFocusPoints = (id: string, pts: unknown) => sse(res, 'focusPoints', { cameraId: id, focusPoints: pts });
+    const onOsd = (v: unknown) => sse(res, 'osd', { osd: v });
     mgr.on('state', onState);
     mgr.on('status', onStatus);
     mgr.on('presets', onPresets);
     mgr.on('focusPoints', onFocusPoints);
+    mgr.on('osd', onOsd);
     const keepAlive = setInterval(() => { if (!res.writableEnded) res.write(': ping\n\n'); }, 15000);
     req.on('close', () => {
       clearInterval(keepAlive);
@@ -119,6 +131,7 @@ export function createApiServer(mgr: CameraManager, _opts: ApiServerOptions = {}
       mgr.off('status', onStatus);
       mgr.off('presets', onPresets);
       mgr.off('focusPoints', onFocusPoints);
+      mgr.off('osd', onOsd);
     });
     return undefined; // streaming response managed here; handle() must not double-send
   });

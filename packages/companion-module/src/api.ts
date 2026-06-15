@@ -20,6 +20,10 @@ export class XystApiClient {
   recordStop(id: string): Promise<unknown> { return this.req('POST', `/api/cameras/${id}/record/stop`); }
   recordAll(start: boolean): Promise<unknown> { return this.req('POST', `/api/record/${start ? 'start' : 'stop'}`); }
 
+  getOsd(): Promise<{ osd: boolean }> { return this.req('GET', '/api/osd') as Promise<{ osd: boolean }>; }
+  setOsd(value: boolean): Promise<unknown> { return this.req('POST', '/api/osd', { value }); }
+  toggleOsd(): Promise<unknown> { return this.req('POST', '/api/osd', { toggle: true }); }
+
   setControl(id: string, control: ControlId, value: string | number): Promise<unknown> {
     return this.req('POST', `/api/cameras/${id}/controls/${control}`, { value });
   }

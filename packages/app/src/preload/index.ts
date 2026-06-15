@@ -31,6 +31,13 @@ const api = {
     ipcRenderer.invoke('camera:setVideoSource', id, video),
   setUiSettings: (id: string, ui: CameraUiSettings) => ipcRenderer.invoke('camera:setUiSettings', id, ui),
   openMultiview: () => ipcRenderer.invoke('window:openMultiview'),
+  getOsd: () => ipcRenderer.invoke('osd:get') as Promise<boolean>,
+  setOsd: (value: boolean) => ipcRenderer.invoke('osd:set', value),
+  onOsd: (cb: (value: boolean) => void) => {
+    const h = (_e: unknown, value: boolean) => cb(value);
+    ipcRenderer.on('osd:state', h);
+    return () => ipcRenderer.off('osd:state', h);
+  },
   importLut: () => ipcRenderer.invoke('lut:import') as Promise<{ name: string; file: string } | null>,
   readLut: (file: string) => ipcRenderer.invoke('lut:read', file) as Promise<string>,
   setFocusPoint: (id: string, x: number, y: number) => ipcRenderer.invoke('camera:setFocusPoint', id, x, y),

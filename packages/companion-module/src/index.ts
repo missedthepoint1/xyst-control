@@ -6,8 +6,9 @@ import { CameraStore } from './state.js';
 import { subscribeEvents, type SseHandle } from './sse.js';
 import { buildActions } from './actions.js';
 import { buildFeedbacks } from './feedbacks.js';
+import { buildPresets } from './presets.js';
 
-const FEEDBACK_IDS = ['recording', 'recording_any', 'connected', 'control_equals'] as const;
+const FEEDBACK_IDS = ['recording', 'recording_any', 'osd_active', 'connected', 'control_equals'] as const;
 
 class ModuleInstance extends InstanceBase<XystConfig> {
   private store = new CameraStore();
@@ -54,7 +55,7 @@ class ModuleInstance extends InstanceBase<XystConfig> {
   private onEvent(event: string, data: string): void {
     try {
       const p = JSON.parse(data) as {
-        cameraId?: string; state?: CameraState; presets?: CameraPreset[]; focusPoints?: FocusPoint[];
+        cameraId?: string; state?: CameraState; presets?: CameraPreset[]; focusPoints?: FocusPoint[]; osd?: boolean;
       };
       if (event === 'state' && p.cameraId && p.state) {
         this.store.applyState(p.cameraId, p.state);
@@ -70,6 +71,10 @@ class ModuleInstance extends InstanceBase<XystConfig> {
       } else if (event === 'focusPoints' && p.cameraId && p.focusPoints) {
         this.store.setFocusPoints(p.cameraId, p.focusPoints);
         this.refreshDefinitions(); // focus-point dropdown choices changed
+      } else if (event === 'osd') {
+        this.store.setOsd(!!p.osd);
+        this.pushVariableValues();
+        this.checkFeedbacks('osd_active');
       }
     } catch { /* ignore malformed */ }
   }
@@ -77,6 +82,7 @@ class ModuleInstance extends InstanceBase<XystConfig> {
   private refreshDefinitions(): void {
     this.setActionDefinitions(buildActions(this.store, this.api));
     this.setFeedbackDefinitions(buildFeedbacks(this.store));
+    this.setPresetDefinitions(buildPresets());
     this.setVariableDefinitions(this.store.variableDefinitions());
   }
 

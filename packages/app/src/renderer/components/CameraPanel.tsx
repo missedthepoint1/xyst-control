@@ -21,6 +21,7 @@ import { useApiBase } from '../hooks/useApiBase.js';
 import { useViewAssist } from '../hooks/useViewAssist.js';
 import { effectiveHidden } from '../panelVisibility.js';
 import { DEFAULT_LOOK } from '../viewAssist.js';
+import { buildOsd } from '../osdInfo.js';
 
 const STATUS_LABEL: Record<string, string> = {
   connected: 'Connected', connecting: 'Connecting…', disconnected: 'Disconnected', error: 'Offline',
@@ -72,26 +73,7 @@ export function CameraPanel({ state, labels = true, onRename, dragHandleProps, d
   };
 
   // Camera-style OSD info rendered ON the live feed (built from discovered state).
-  const n = (v: unknown) => (typeof v === 'number' ? v : undefined);
-  const wbLabels: Record<string, string> = { auto: 'AWB', manual: 'WB Set', wb_a: 'WB A', wb_b: 'WB B', daylight: 'Daylight', tungsten: 'Tungsten', kelvin: 'Kelvin' };
-  const osd = {
-    iso: c.iso?.value != null ? `ISO ${c.iso.value}`
-       : n(c.gain?.value) != null ? `${(n(c.gain!.value)! / 10).toFixed(1)}dB` : undefined,
-    shutter: c.shutter?.available
-      ? (c.shutter.mode === 'angle' && n(c.shutterAngle?.value) != null
-          ? `${Math.round(n(c.shutterAngle!.value)! / 100)}°`
-          : c.shutter.value != null ? `1/${c.shutter.value}` : undefined)
-      : undefined,
-    iris: n(c.iris?.value) != null ? `f/${(n(c.iris!.value)! / 100).toFixed(1)}` : undefined,
-    wb: c.wb?.value === 'kelvin'
-      ? (n(c.wbKelvin?.value) != null ? `${c.wbKelvin!.value}K` : 'Kelvin')
-      : typeof c.wb?.value === 'string' ? (wbLabels[c.wb.value] ?? c.wb.value) : undefined,
-    nd: n(c.nd?.value) != null ? (n(c.nd!.value)! > 0 ? `ND ${+(Math.log2(n(c.nd!.value)! / 100)).toFixed(1)}` : 'ND Off') : undefined,
-    rec,
-    remaining: state.record.remainingMinutes,
-    battery: state.power?.percent != null ? `${state.power.percent}%`
-           : state.power?.volt != null ? `${state.power.volt}V` : undefined,
-  };
+  const osd = buildOsd(state);
 
   return (
     <section className={`card panel${rec ? ' is-rec' : ''}${isOver ? ' is-drop' : ''}`} {...dragItemProps}>

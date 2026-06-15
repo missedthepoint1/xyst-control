@@ -16,10 +16,13 @@ const vid = (cameraId: string, suffix: string): string =>
 export class CameraStore {
   private cams = new Map<string, CameraState>();
   private presets = new Map<string, CameraPreset[]>();
+  private osdOn = false;
 
   setCameras(list: CameraState[]): void {
     this.cams = new Map(list.map((c) => [c.id, c]));
   }
+  setOsd(value: boolean): void { this.osdOn = !!value; }
+  osd(): boolean { return this.osdOn; }
   applyState(id: string, state: CameraState): void { this.cams.set(id, state); }
   setPresets(id: string, presets: CameraPreset[]): void { this.presets.set(id, presets); }
   setFocusPoints(id: string, points: FocusPoint[]): void { const c = this.cams.get(id); if (c) c.focusPoints = points; }
@@ -74,11 +77,13 @@ export class CameraStore {
       );
       for (const ctl of VAR_CONTROLS) defs.push({ variableId: vid(c.id, ctl), name: `${label} ${ctl}` });
     }
+    defs.push({ variableId: 'osd', name: 'OSD on multiview' });
     return defs;
   }
 
   variableValues(): VariableValues {
     const vals: VariableValues = {};
+    vals['osd'] = this.osdOn ? 'on' : 'off';
     for (const c of this.list()) {
       vals[vid(c.id, 'name')] = c.name;
       vals[vid(c.id, 'status')] = c.status;

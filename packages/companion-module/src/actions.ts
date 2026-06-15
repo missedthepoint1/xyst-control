@@ -36,6 +36,11 @@ export function buildActions(store: CameraStore, api: XystApiClient): CompanionA
     record_all_start: { name: 'Record ALL: start', options: [], callback: async () => { await api.recordAll(true); } },
     record_all_stop: { name: 'Record ALL: stop', options: [], callback: async () => { await api.recordAll(false); } },
 
+    // ---- multiview OSD (overlay on all popout feeds) ----
+    osd_show: { name: 'OSD: show on all feeds', options: [], callback: async () => { await api.setOsd(true); } },
+    osd_hide: { name: 'OSD: hide on all feeds', options: [], callback: async () => { await api.setOsd(false); } },
+    osd_toggle: { name: 'OSD: toggle on all feeds', options: [], callback: async () => { await api.toggleOsd(); } },
+
     // ---- exposure / value controls ----
     set_control: {
       name: 'Set control (any, by value)',

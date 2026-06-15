@@ -383,9 +383,20 @@
 .multiview--popout .video, .multiview--popout .video--tile {
   aspect-ratio: auto; height: 100%; border-radius: 0; margin: 0; border: none;
 }
-/* Box-count selector, floating top-right */
+/* Floating tools cluster (settings gear + box-count) top-right */
+.popout-tools { position: absolute; top: 10px; right: 10px; z-index: 6; display: flex; align-items: center; gap: 8px; }
+.popout-gear {
+  display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 30px;
+  border-radius: 8px; color: #fff; cursor: pointer;
+  background-color: rgba(0, 0, 0, 0.6); border: 1px solid rgba(255, 255, 255, 0.18); backdrop-filter: blur(4px);
+}
+.popout-gear:hover { border-color: rgba(255, 255, 255, 0.4); }
+.popout-settings {
+  position: absolute; top: 50px; right: 10px; z-index: 7; min-width: 220px;
+  padding: 12px 14px; border-radius: 10px; display: grid; gap: 10px;
+  background-color: rgba(12, 13, 18, 0.92); border: 1px solid rgba(255, 255, 255, 0.18); backdrop-filter: blur(8px);
+}
 .boxcount {
-  position: absolute; top: 10px; right: 10px; z-index: 6;
   padding: 5px 26px 5px 10px; border-radius: 8px; font-size: 13px; font-weight: 600; color: #fff;
   background-color: rgba(0, 0, 0, 0.6); border: 1px solid rgba(255, 255, 255, 0.18); backdrop-filter: blur(4px);
   appearance: none; -webkit-appearance: none; cursor: pointer;
