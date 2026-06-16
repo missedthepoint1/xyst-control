@@ -15,7 +15,7 @@ interface Entry {
 
 const registry = new Map<string, Entry>();
 
-// How long to wait before re-attempting a device that failed to open, while consumers remain.
+// How long to wait before re-attempting a device that failed to open or dropped, while consumers remain.
 const RETRY_MS = 1500;
 
 function snapshot(entry: Entry): Snapshot {
@@ -27,6 +27,24 @@ function snapshot(entry: Entry): Snapshot {
 function emit(entry: Entry): void {
   const snap = snapshot(entry);
   entry.listeners.forEach((l) => l(snap));
+}
+
+// Schedule a reconnect attempt while consumers remain; otherwise drop the entry.
+function scheduleReopen(deviceId: string, entry: Entry): void {
+  if (entry.refs === 0) { registry.delete(deviceId); return; }
+  setTimeout(() => {
+    if (registry.get(deviceId) === entry && entry.refs > 0) void open(deviceId, entry);
+  }, RETRY_MS);
+}
+
+// A live track died (USB unplug / device removed). Fail soft + reconnect symmetrically with open-failure.
+function onTrackEnded(deviceId: string, entry: Entry): void {
+  if (registry.get(deviceId) !== entry) return; // already torn down
+  entry.stream?.getTracks().forEach((t) => t.stop());
+  entry.stream = null;
+  entry.status = 'error';
+  emit(entry);
+  scheduleReopen(deviceId, entry);
 }
 
 async function open(deviceId: string, entry: Entry): Promise<void> {
@@ -47,9 +65,21 @@ async function open(deviceId: string, entry: Entry): Promise<void> {
     }
     entry.stream = stream;
     entry.status = 'live';
-    const s = stream.getVideoTracks()[0]?.getSettings();
+    const track = stream.getVideoTracks()[0];
+    const s = track?.getSettings();
     console.info(`[capture] ${deviceId} opened at ${s?.width}×${s?.height}@${s?.frameRate ?? '?'}fps`);
     emit(entry);
+    // Detect mid-show loss of a LIVE device (the catch below only covers the initial open):
+    // a USB unplug ends the track; an SDI signal drop mutes it. Recover/reflect both.
+    if (track) {
+      track.onended = () => onTrackEnded(deviceId, entry);
+      track.onmute = () => {
+        if (entry.stream === stream && entry.status === 'live') { entry.status = 'error'; emit(entry); }
+      };
+      track.onunmute = () => {
+        if (entry.stream === stream && entry.status === 'error') { entry.status = 'live'; emit(entry); }
+      };
+    }
   } catch (err) {
     console.warn(`[capture] ${deviceId} failed to open`, err);
     entry.status = 'error';
@@ -58,9 +88,7 @@ async function open(deviceId: string, entry: Entry): Promise<void> {
     emit(entry);
     // Robustness (fail soft + reconnect): keep retrying while consumers remain, so a transient
     // device hiccup at show time recovers on its own instead of stranding the panel on an error.
-    setTimeout(() => {
-      if (registry.get(deviceId) === entry && entry.refs > 0) void open(deviceId, entry);
-    }, RETRY_MS);
+    scheduleReopen(deviceId, entry);
   }
 }
 
