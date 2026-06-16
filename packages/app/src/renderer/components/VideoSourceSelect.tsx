@@ -33,8 +33,9 @@ export function VideoSourceSelect({ current, onChange, name }: {
       if (v === 'protocol') onChange({ type: 'protocol' });
       else if (v.startsWith('capture:')) onChange({ type: 'capture', deviceId: v.slice('capture:'.length) });
       else if (v.startsWith('quad:')) {
-        const [, deviceId, q] = v.split(':');
-        onChange({ type: 'quad', deviceId, quadrant: Number(q) as 0 | 1 | 2 | 3 });
+        const rest = v.slice('quad:'.length);
+        const i = rest.lastIndexOf(':');
+        onChange({ type: 'quad', deviceId: rest.slice(0, i), quadrant: Number(rest.slice(i + 1)) as 0 | 1 | 2 | 3 });
       } else onChange({ type: 'none' });
     }}>
       <option value="none">No video</option>
