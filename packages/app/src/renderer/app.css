@@ -260,6 +260,7 @@
   overflow: hidden; margin-bottom: 16px; border: 1px solid var(--border); }
 .video--rec { border-color: var(--rec); box-shadow: inset 0 0 0 1px var(--rec), 0 0 22px var(--rec-glow); }
 .video__img { width: 100%; height: 100%; object-fit: contain; display: block; background: #000; }
+.video__img--quad { position: absolute; width: 200%; height: 200%; max-width: none; object-fit: cover; }
 .video__placeholder { position: absolute; inset: 0; display: flex; flex-direction: column;
   align-items: center; justify-content: center; gap: 11px; pointer-events: none;
   background: radial-gradient(ellipse 60% 60% at center, rgba(255,255,255,0.03), transparent 75%); }

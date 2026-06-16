@@ -1,6 +1,14 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import type { VideoSource } from '@xyst/core';
+import { quadrantPosition } from '@xyst/core/video';
 import { applyViewAssist, type ResolvedViewAssist } from '../viewAssist.js';
+import { useCaptureStream } from '../captureStreams.js';
+/** Inline crop offsets to bring one quadrant of a 4K frame into view; sizing/fit live in CSS. */
+function quadStyle(q: 0 | 1 | 2 | 3): CSSProperties {
+  const { col, row } = quadrantPosition(q);
+  return { left: `${-col * 100}%`, top: `${-row * 100}%` };
+}
+
 type DetectBox = { type: 'face' | 'eye' | 'object'; x: number; y: number; w: number; h: number; main: boolean; track: boolean };
 type Guide = { status: boolean; level: number; angle: number; dir: string; x: number; y: number; w: number; h: number };
 export type OsdInfo = {
@@ -61,17 +69,30 @@ export function VideoPanel({ cameraId, source, recording, apiBase, name, osd, sh
     return () => { stopped = true; if (timer) clearTimeout(timer); };
   }, [type, apiBase, cameraId, showOsd]);
 
+  const isDeviceSource = type === 'capture' || type === 'quad';
+  const capture = useCaptureStream(isDeviceSource ? source?.deviceId : undefined);
   useEffect(() => {
-    if (type !== 'capture' || !source?.deviceId) return;
-    let cancelled = false; let stream: MediaStream | undefined;
-    navigator.mediaDevices.getUserMedia({ video: { deviceId: { exact: source.deviceId } } })
-      .then((s) => { if (cancelled) { s.getTracks().forEach((t) => t.stop()); return; } stream = s; if (videoRef.current) videoRef.current.srcObject = s; setErr(false); })
-      .catch(() => setErr(true));
-    return () => { cancelled = true; stream?.getTracks().forEach((t) => t.stop()); };
-  }, [type, source?.deviceId]);
+    const v = videoRef.current;
+    if (v) v.srcObject = capture.stream;
+    return () => { if (v) v.srcObject = null; };
+  }, [capture.stream, type]);
+  const captureErr = isDeviceSource && capture.status === 'error';
 
   const tap = (e: React.MouseEvent<HTMLDivElement>) => {
     if (onSelect) { onSelect(); return; }
+    if (type === 'quad') {
+      // The visible panel IS the quadrant (aspect-matched, no letterbox) — tap coords are
+      // already the camera's normalized 0..1.
+      const rect = e.currentTarget.getBoundingClientRect();
+      const nx = (e.clientX - rect.left) / rect.width;
+      const ny = (e.clientY - rect.top) / rect.height;
+      if (nx < 0 || ny < 0 || nx > 1 || ny > 1) return;
+      void window.xyst.setFocusPoint(cameraId, nx, ny);
+      onFocus?.(nx, ny);
+      setMark({ x: nx * 100, y: ny * 100 });
+      setTimeout(() => setMark(null), 1500);
+      return;
+    }
     const rect = e.currentTarget.getBoundingClientRect();
     const media = imgRef.current ?? videoRef.current;
     let nw = 16, nh = 9;
@@ -106,7 +127,11 @@ export function VideoPanel({ cameraId, source, recording, apiBase, name, osd, sh
         </>
       )}
       {type === 'capture' && <video ref={videoRef} className="video__img" autoPlay muted playsInline />}
-      {(type === 'none' || err) && (
+      {type === 'quad' && (
+        <video ref={videoRef} className="video__img video__img--quad"
+          style={quadStyle(source?.quadrant ?? 0)} autoPlay muted playsInline />
+      )}
+      {(type === 'none' || err || captureErr) && (
         <div className="video__placeholder">
           {type === 'none' ? (
             <svg className="video__ph-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true">
