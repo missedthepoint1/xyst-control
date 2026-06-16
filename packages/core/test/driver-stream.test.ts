@@ -8,7 +8,7 @@ afterEach(async () => { await drv?.disconnect(); await cam?.close(); });
 
 const makeDriver = (host: string) =>
   new XCProtocolDriver({ id: 'c', name: 'C300', driver: 'xc', host },
-    { pollMs: 50, reconcileMs: 300 });
+    { pollMs: 50, reconcileMs: 300, tcPollMs: 30 });
 
 describe('XCProtocolDriver streaming', () => {
   it('reflects a body-side change via the stream quickly', async () => {
@@ -44,15 +44,18 @@ describe('XCProtocolDriver streaming', () => {
     expect(drv.getState().model).toBe('Canon EOS C300 Mark III');
   });
 
-  it('ticks timecode from a value-only stream delta while preserving run/drop-frame', async () => {
+  it('reports the running timecode from the dedicated TC session, preserving run/drop-frame', async () => {
     cam = new FakeCamera();
     const host = await cam.listen();
     drv = makeDriver(host);
     await drv.connect();
-    expect(drv.getState().timecode).toMatchObject({ value: '01:00:00:00', run: 'freerun', dropFrame: false });
-    cam.pushDelta({ 'f.timecode.set': '01:00:05:12' }); // the running TC advances
+    // Config (run/drop-frame) comes from sessionless info.cgi; the running value comes from the
+    // TC session reading the bare f.timecode (NOT f.timecode.set, which is the static preset).
+    expect(drv.getState().timecode).toMatchObject({ run: 'freerun', dropFrame: false });
+    await vi.waitFor(() => expect(drv.getState().timecode?.value).toBe('01:00:00:00'), { timeout: 1000 });
+    cam.setTimecode('01:00:05:12'); // the running TC advances
     await vi.waitFor(() => expect(drv.getState().timecode?.value).toBe('01:00:05:12'), { timeout: 1000 });
-    expect(drv.getState().timecode?.run).toBe('freerun'); // run mode NOT wiped by the tick
+    expect(drv.getState().timecode?.run).toBe('freerun'); // config NOT wiped by the value update
     expect(drv.getState().timecode?.dropFrame).toBe(false);
   });
 

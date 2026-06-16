@@ -18,6 +18,7 @@ import { FocusPointBar } from './FocusPointBar.js';
 import { VideoSourceSelect } from './VideoSourceSelect.js';
 import { CameraSettings } from './CameraSettings.js';
 import { useApiBase } from '../hooks/useApiBase.js';
+import { usePref } from '../hooks/usePref.js';
 import { useViewAssist } from '../hooks/useViewAssist.js';
 import { effectiveHidden } from '../panelVisibility.js';
 import { DEFAULT_LOOK } from '../viewAssist.js';
@@ -41,6 +42,8 @@ export function CameraPanel({ state, labels = true, onRename, dragHandleProps, d
   const rec = state.record.recording;
   const [advanced, setAdvanced] = useState(false);
   const [showOsd, setShowOsd] = useState(true);
+  // Timecode visibility on panels — its own persisted pref, independent of the multiview popout.
+  const [showTc, setShowTc] = usePref<boolean>('showTcPanels', true);
   const [settingsOpen, setSettingsOpen] = useState(false);
   // View-assist LUT on the live preview, per-camera, persisted in the profile.
   const hidden = effectiveHidden(state);
@@ -78,7 +81,7 @@ export function CameraPanel({ state, labels = true, onRename, dragHandleProps, d
   return (
     <section className={`card panel${rec ? ' is-rec' : ''}${isOver ? ' is-drop' : ''}`} {...dragItemProps}>
       <VideoSourceSelect current={state.video} name={label} onChange={(v) => window.xyst.setVideoSource(id, v)} />
-      <VideoPanel cameraId={id} source={state.video} recording={rec} apiBase={apiBase} osd={osd} showOsd={showOsd} viewAssist={resolvedVa} onFocus={(x, y) => setLastFocus({ x, y })} />
+      <VideoPanel cameraId={id} source={state.video} recording={rec} apiBase={apiBase} osd={osd} showOsd={showOsd} showTc={showTc} viewAssist={resolvedVa} onFocus={(x, y) => setLastFocus({ x, y })} />
       {state.video && state.video.type !== 'none' && !hidden.has('focusPoints') && (
         <FocusPointBar cameraId={id} lastFocus={lastFocus} />
       )}
@@ -129,6 +132,13 @@ export function CameraPanel({ state, labels = true, onRename, dragHandleProps, d
                 title="Show camera info, face/eye boxes and focus guide on the live view"
                 onClick={() => setShowOsd((s) => !s)}>
                 <span className="ic" /> OSD
+              </button>
+            )}
+            {hasVideo && showOsd && osd?.tc && (
+              <button type="button" className={`osd-btn${showTc ? ' is-on' : ''}`}
+                title="Show the running timecode on panels (separate from the multiview popout)"
+                onClick={() => setShowTc(!showTc)}>
+                <span className="ic" /> TC
               </button>
             )}
             <button type="button" className={`osd-btn icon-btn${settingsOpen ? ' is-on' : ''}`}

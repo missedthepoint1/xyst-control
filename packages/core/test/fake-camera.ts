@@ -21,6 +21,7 @@ export class FakeCamera {
   private state: Record<string, string> = {};
   private failsLeft: number;
   private streams = new Set<ServerResponse>();
+  private tcValue = '01:00:00:00'; // running timecode served via the session (bare f.timecode)
   readonly controlLog: string[] = [];
 
   constructor(private opts: FakeCameraOptions = {}) {
@@ -41,6 +42,9 @@ export class FakeCamera {
     this.streams.clear();
     await new Promise<void>((r) => this.server.close(() => r()));
   }
+
+  /** Advance the running timecode served over the session (the bare f.timecode field). */
+  setTimecode(value: string): void { this.tcValue = value; }
 
   /** Simulate a body-side change: update state and push the delta to open streams. */
   pushDelta(delta: Record<string, string>): void {
@@ -89,6 +93,28 @@ export class FakeCamera {
       return;
     }
 
+    // Session lifecycle for the running-timecode reader.
+    if (cmd === 'open.cgi') {
+      res.writeHead(200, { 'content-type': 'text/plain;charset=utf-8', 'livescope-status': '0' });
+      res.end('s:=tcsid\ns.authority.control:=enabled\ns.duration:=0');
+      return;
+    }
+    if (cmd === 'close.cgi') {
+      res.writeHead(200, { 'content-type': 'text/plain;charset=utf-8', 'livescope-status': '0' });
+      res.end('');
+      return;
+    }
+    // Session read of the bare f.timecode — only present once f.timecode.info=on was set (like the body).
+    if (cmd === 'info.cgi' && url.searchParams.has('s') && url.searchParams.get('item') === 'f.timecode') {
+      const lines = Object.entries(this.state)
+        .filter(([k]) => k.startsWith('f.timecode'))
+        .map(([k, v]) => `${k}:=${v}`);
+      if (this.state['f.timecode.info'] === 'on') lines.push(`f.timecode:=${this.tcValue}`);
+      res.writeHead(200, { 'content-type': 'text/plain;charset=utf-8', 'livescope-status': '0' });
+      res.end(lines.join('\n'));
+      return;
+    }
+
     if (cmd === 'info.cgi' && url.searchParams.get('type') === 'stream') {
       res.writeHead(200, {
         'content-type': `multipart/x-mixed-replace; boundary=${BOUNDARY}`,
@@ -101,7 +127,9 @@ export class FakeCamera {
     }
 
     if (cmd === 'control.cgi') {
-      this.controlLog.push(url.search.slice(1));
+      // Only log real (sessionless) control commands; the TC session's `s=…&f.timecode.info=on`
+      // is keepalive/setup noise that would otherwise clobber controlLog.at(-1) assertions.
+      if (!url.searchParams.has('s')) this.controlLog.push(url.search.slice(1));
       const changed: Record<string, string> = {};
       for (const [k, v] of url.searchParams) {
         if (k.startsWith('c.') || k.startsWith('f.')) { this.state[k] = v; changed[k] = v; }

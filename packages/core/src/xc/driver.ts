@@ -9,12 +9,15 @@ import { fetchMeta } from './meta.js';
 import { interpretInfo } from './interpret.js';
 import { buildControlParams, buildRecordParams, buildSettingsParams } from './commands.js';
 import { openInfoStream, type InfoStreamHandle } from './stream.js';
+import { XcTimecodeSession } from './tcSession.js';
 
 export interface XCDriverOptions {
   pollMs?: number;
   timeoutMs?: number;
   /** Slow reconcile/liveness poll cadence while the stream is healthy. */
   reconcileMs?: number;
+  /** Running-timecode session poll cadence (default 1000ms). */
+  tcPollMs?: number;
 }
 
 export class XCProtocolDriver extends EventEmitter implements CameraDriver {
@@ -29,10 +32,14 @@ export class XCProtocolDriver extends EventEmitter implements CameraDriver {
   private readonly pollMs: number;
   private readonly timeoutMs: number;
   private readonly reconcileMs: number;
+  private readonly tcPollMs?: number;
   private stream?: InfoStreamHandle;
   private streaming = false;
   private lastActivityAt = 0;
   private streamRetry?: NodeJS.Timeout;
+  private tcSession?: XcTimecodeSession;
+  /** Live running timecode from the dedicated TC session, injected into getState(). */
+  private liveTimecode?: string;
 
   constructor(private profile: CameraProfile, opts: XCDriverOptions = {}) {
     super();
@@ -40,6 +47,7 @@ export class XCProtocolDriver extends EventEmitter implements CameraDriver {
     this.pollMs = opts.pollMs ?? 750;
     this.timeoutMs = opts.timeoutMs ?? 4000;
     this.reconcileMs = opts.reconcileMs ?? 5000;
+    this.tcPollMs = opts.tcPollMs;
     // Safety net: prevent Node from throwing on unhandled 'error' events.
     this.on('error', () => {});
   }
@@ -47,7 +55,7 @@ export class XCProtocolDriver extends EventEmitter implements CameraDriver {
   get status(): ConnectionStatus { return this._status; }
 
   getState(): CameraState {
-    return {
+    const state: CameraState = {
       id: this.id,
       name: this.profile.name,
       status: this._status,
@@ -57,6 +65,10 @@ export class XCProtocolDriver extends EventEmitter implements CameraDriver {
       focusPoints: this.profile.focusPoints,
       ...this.snapshot,
     };
+    // Inject the live running timecode (from the dedicated TC session) on top of the config that
+    // came from the sessionless info.cgi, so a refresh() rebuilding the snapshot doesn't drop it.
+    if (this.liveTimecode) state.timecode = { ...state.timecode, value: this.liveTimecode };
+    return state;
   }
 
   async getPreview(): Promise<import('../types.js').PreviewFrame> {
@@ -76,6 +88,7 @@ export class XCProtocolDriver extends EventEmitter implements CameraDriver {
       this.setStatus('connected');
       this.startPolling();
       this.startStream();
+      this.startTimecodeSession();
     } catch (err) {
       this.fail(err);
       this.startPolling(); // keep trying to recover
@@ -89,7 +102,33 @@ export class XCProtocolDriver extends EventEmitter implements CameraDriver {
     if (this.streamRetry) clearTimeout(this.streamRetry);
     this.streamRetry = undefined;
     this.stopStream();
+    this.stopTimecodeSession();
     this.setStatus('disconnected');
+  }
+
+  // The live timecode runs in its own read-only session (see xc/tcSession.ts). It's fully
+  // decoupled from control: if it can't open or drops, the TC chip just hides — control and
+  // live view are unaffected.
+  private startTimecodeSession(): void {
+    if (this.tcSession) return;
+    this.tcSession = new XcTimecodeSession({
+      host: this.profile.host,
+      auth: this.profile.auth,
+      timeoutMs: this.timeoutMs,
+      pollMs: this.tcPollMs,
+      onValue: (value) => {
+        if (this.liveTimecode === value) return;
+        this.liveTimecode = value;
+        this.emit('state', this.getState());
+      },
+    });
+    this.tcSession.start();
+  }
+
+  private stopTimecodeSession(): void {
+    this.tcSession?.stop();
+    this.tcSession = undefined;
+    this.liveTimecode = undefined;
   }
 
   async startRecording(): Promise<void> { await this.control(buildRecordParams(true)); }

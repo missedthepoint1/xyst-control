@@ -270,6 +270,17 @@
   background: var(--rec); color: #fff; font-size: 11px; font-weight: 700; padding: 4px 9px; border-radius: 7px;
   letter-spacing: 0.6px; box-shadow: 0 0 14px var(--rec-glow); }
 .video__tally .video__dot { width: 8px; height: 8px; border-radius: 50%; background: #fff; }
+/* When the camera selector (.feedsel) is shown top-left on a popout tile, drop the REC indicator
+   (the OSD-off tally AND the OSD-on pill) just below it so the dropdown doesn't hide it. */
+.mvtile--labeled .video__tally,
+.mvtile--labeled .osd__rec { top: 48px; }
+
+/* Capture degraded to 1080p (4K unavailable on this link) — clickable to retry 4K. */
+.video__degraded { position: absolute; top: 10px; right: 10px; z-index: 5; display: inline-flex;
+  align-items: center; gap: 5px; padding: 3px 8px; border: none; border-radius: 6px; cursor: pointer;
+  background: rgba(0,0,0,0.62); color: #ffce5a; font-size: 12px; font-weight: 700; line-height: 1;
+  letter-spacing: 0.3px; backdrop-filter: blur(6px); box-shadow: 0 0 0 1px rgba(255,206,90,0.4); }
+.video__degraded:hover { background: rgba(0,0,0,0.8); }
 
 .viewseg { margin-right: 4px; }
 /* AF tap marker */

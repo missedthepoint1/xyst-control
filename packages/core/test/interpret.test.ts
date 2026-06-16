@@ -63,22 +63,25 @@ describe('interpretInfo', () => {
     expect(snap2.record.recording).toBe(true);
   });
 
-  it('reads timecode (value + run mode + drop-frame)', () => {
-    expect(snap.timecode?.value).toBe('01:00:00:00');
+  it('reads timecode CONFIG (run/mode/drop-frame); the running value is session-only', () => {
     expect(snap.timecode?.run).toBe('freerun');
     expect(snap.timecode?.dropFrame).toBe(false);
     expect(snap.timecode?.mode).toBe('preset');
+    // f.timecode.set is the static PRESET, not the running TC — interpret never sets value.
+    expect(snap.timecode?.value).toBeUndefined();
   });
 
-  it('emits no timecode when the body does not advertise f.timecode.set', () => {
+  it('emits no timecode when the body does not advertise timecode config', () => {
     expect(interpretInfo({ 'c.1.type': 'X' }).timecode).toBeUndefined();
+    // The preset alone (f.timecode.set) is not the live value, so it produces no timecode object.
+    expect(interpretInfo({ 'f.timecode.set': '01:00:05:12' }).timecode).toBeUndefined();
   });
 
-  it('a value-only timecode delta omits the unrelated sub-fields (so merge preserves them)', () => {
-    const delta = interpretInfo({ 'f.timecode.set': '01:00:05:12' });
-    expect(delta.timecode).toEqual({ value: '01:00:05:12' });
-    expect(delta.timecode?.run).toBeUndefined();
+  it('a config-only timecode delta omits the unrelated sub-fields (so merge preserves them)', () => {
+    const delta = interpretInfo({ 'f.timecode.run': 'recrun' });
+    expect(delta.timecode).toEqual({ run: 'recrun' });
     expect(delta.timecode?.dropFrame).toBeUndefined();
+    expect(delta.timecode?.mode).toBeUndefined();
   });
 
   it('reads shutter angle, focus, face-detect and colorbar', () => {

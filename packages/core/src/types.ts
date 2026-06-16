@@ -44,8 +44,12 @@ export interface PowerState {
  * endpoint in any published version, so it stays undefined there. Not a {@link ControlId}.
  */
 export interface TimecodeState {
-  /** Current timecode, "HH:MM:SS:FF". */
-  value: string;
+  /**
+   * Current RUNNING timecode, "HH:MM:SS:FF". On XC this is the bare `f.timecode` field, which is
+   * only exposed inside an open session with `f.timecode.info=on` (NOT `f.timecode.set`, which is
+   * the static preset). Undefined until the driver's timecode session reports a value.
+   */
+  value?: string;
   /** Count-up mode: 'recrun' (advances only while recording) | 'freerun'. */
   run?: string;
   /** true = drop-frame (DF), false = non-drop (NDF). */
@@ -93,6 +97,13 @@ export interface VideoSource {
   type: 'none' | 'protocol' | 'capture' | 'quad';
   /** For 'capture' and 'quad': the UVC capture device id (MediaDeviceInfo.deviceId). */
   deviceId?: string;
+  /**
+   * Stable device identity (MediaDeviceInfo.label, e.g. "Blackmagic Web Presenter 4K (1edb:be8b)").
+   * The deviceId is NOT stable — a capture device re-enumerated after a cable/link change gets a
+   * new id. The renderer matches a saved source to the live device by deviceId first, then falls
+   * back to this label, so the feed reconnects without a manual re-select.
+   */
+  deviceLabel?: string;
   quadrant?: Quadrant; // 0=TL 1=TR 2=BL 3=BR; only for type:'quad'
 }
 

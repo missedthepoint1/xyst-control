@@ -43,6 +43,8 @@ function PopoutMultiview() {
   const apiBase = useApiBase();
   const [osd, setOsd] = useOsd();
   const [showLabels, setShowLabels] = usePref<boolean>('popoutLabels', true);
+  // Timecode visibility on the multiview popout — its own persisted pref, independent of panels.
+  const [showTc, setShowTc] = usePref<boolean>('showTcMultiview', true);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const idKey = [...states.map((s) => s.id)].sort().join('|');
   // Box count: how many feed tiles to show (1..8). 0 = auto (match the number of cameras).
@@ -86,6 +88,10 @@ function PopoutMultiview() {
             <span>Show OSD on all feeds</span>
           </label>
           <label className="cam-settings__row">
+            <input type="checkbox" checked={showTc} disabled={!osd} onChange={(e) => setShowTc(e.target.checked)} />
+            <span>Show timecode</span>
+          </label>
+          <label className="cam-settings__row">
             <input type="checkbox" checked={showLabels} onChange={(e) => setShowLabels(e.target.checked)} />
             <span>Show labels &amp; controls</span>
           </label>
@@ -95,10 +101,10 @@ function PopoutMultiview() {
         {assign.map((cid, i) => {
           const s = states.find((x) => x.id === cid);
           return (
-            <div className="mvtile" key={i}>
+            <div className={`mvtile${showLabels ? ' mvtile--labeled' : ''}`} key={i}>
               {s && (
                 <VideoPanel cameraId={s.id} source={s.video} apiBase={apiBase}
-                  recording={s.record.recording} showOsd={osd} osd={osd ? buildOsd(s) : undefined} />
+                  recording={s.record.recording} showOsd={osd} showTc={showTc} osd={osd ? buildOsd(s) : undefined} />
               )}
               {showLabels && (
                 <select className="feedsel" value={cid} aria-label="Camera for this tile"

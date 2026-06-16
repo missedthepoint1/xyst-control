@@ -2,7 +2,8 @@ import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import type { VideoSource } from '@xyst/core';
 import { quadrantPosition } from '@xyst/core/video';
 import { applyViewAssist, type ResolvedViewAssist } from '../viewAssist.js';
-import { useCaptureStream } from '../captureStreams.js';
+import { useCaptureStream, retryCapture } from '../captureStreams.js';
+import { useVideoInputs, resolveDeviceId } from '../videoDevices.js';
 /** Inline crop offsets to bring one quadrant of a 4K frame into view; sizing/fit live in CSS. */
 function quadStyle(q: 0 | 1 | 2 | 3): CSSProperties {
   const { col, row } = quadrantPosition(q);
@@ -16,9 +17,9 @@ export type OsdInfo = {
   tc?: string; rec: boolean; remaining?: number; battery?: string;
 };
 
-export function VideoPanel({ cameraId, source, recording, apiBase, name, osd, showOsd = true, viewAssist = null, onSelect, onFocus }: {
+export function VideoPanel({ cameraId, source, recording, apiBase, name, osd, showOsd = true, showTc = true, viewAssist = null, onSelect, onFocus }: {
   cameraId: string; source?: VideoSource; recording: boolean; apiBase: string;
-  name?: string; osd?: OsdInfo; showOsd?: boolean; viewAssist?: ResolvedViewAssist | null;
+  name?: string; osd?: OsdInfo; showOsd?: boolean; showTc?: boolean; viewAssist?: ResolvedViewAssist | null;
   onSelect?: () => void; onFocus?: (x: number, y: number) => void;
 }) {
   const type = source?.type ?? 'none';
@@ -70,13 +71,20 @@ export function VideoPanel({ cameraId, source, recording, apiBase, name, osd, sh
   }, [type, apiBase, cameraId, showOsd]);
 
   const isDeviceSource = type === 'capture' || type === 'quad';
-  const capture = useCaptureStream(isDeviceSource ? source?.deviceId : undefined);
+  // Resolve to the device's CURRENT id (it churns on cable/link changes) — match by saved id,
+  // then by stable label. A re-enumeration fires devicechange → new id → the stream reopens itself.
+  const devices = useVideoInputs();
+  const liveDeviceId = isDeviceSource ? resolveDeviceId(source, devices) : undefined;
+  const capture = useCaptureStream(liveDeviceId);
   useEffect(() => {
     const v = videoRef.current;
     if (v) v.srcObject = capture.stream;
     return () => { if (v) v.srcObject = null; };
   }, [capture.stream, type]);
   const captureErr = isDeviceSource && capture.status === 'error';
+  // 4K was requested but the link could only deliver 1080p — quad tiles are then ~960×540, so
+  // flag it. Clicking retries 4K (e.g. after the operator reseats the cable into a SuperSpeed port).
+  const captureDegraded = isDeviceSource && capture.status === 'live' && capture.degraded;
 
   const tap = (e: React.MouseEvent<HTMLDivElement>) => {
     if (onSelect) { onSelect(); return; }
@@ -147,6 +155,15 @@ export function VideoPanel({ cameraId, source, recording, apiBase, name, osd, sh
           <span className="video__ph-text">{type === 'none' ? 'No video source' : 'No signal'}</span>
         </div>
       )}
+      {captureDegraded && (
+        <button type="button" className="video__degraded"
+          title={`4K unavailable on this link — capture dropped to ${capture.height}p${type === 'quad' ? ` (≈${Math.round(capture.height / 2)}p per tile)` : ''}. Click to retry 4K.`}
+          onClick={(e) => { e.stopPropagation(); if (liveDeviceId) retryCapture(liveDeviceId); }}>
+          {/* Per-TILE resolution: a quad tile is one quadrant, so it's half the capture height
+              (1080p capture → 540p tile; 4K capture → 1080p tile). */}
+          ⚠ {type === 'quad' ? Math.round(capture.height / 2) : capture.height}p
+        </button>
+      )}
       {mark && <span className="video__af" style={{ left: `${mark.x}%`, top: `${mark.y}%` }} />}
       {!onSelect && showOsd && boxes.map((b, i) => (
         <div key={i}
@@ -173,7 +190,7 @@ export function VideoPanel({ cameraId, source, recording, apiBase, name, osd, sh
         <div className="osd">
           <div className="osd__top">
             {osd.rec && <span className="osd__rec"><span className="osd__dot" /> REC{osd.remaining != null ? ` · ${osd.remaining}m` : ''}</span>}
-            {osd.tc && <span className="osd__tc">{osd.tc}</span>}
+            {showTc && osd.tc && <span className="osd__tc">{osd.tc}</span>}
           </div>
           <div className="osd__bar">
             {osd.iso && <span>{osd.iso}</span>}
