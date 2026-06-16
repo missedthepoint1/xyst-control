@@ -85,8 +85,16 @@ export interface CameraAuth {
 /** A single preview frame (JPEG bytes) fetched from a camera. */
 export interface PreviewFrame { data: Uint8Array; contentType: string; }
 
+/** A camera's slot in a 2×2 capture grid. 0=TL 1=TR 2=BL 3=BR (reading order). */
+export type Quadrant = 0 | 1 | 2 | 3;
+
 /** Per-camera video source for the live-view panel (decoupled from control). */
-export interface VideoSource { type: 'none' | 'protocol' | 'capture'; deviceId?: string; }
+export interface VideoSource {
+  type: 'none' | 'protocol' | 'capture' | 'quad';
+  /** For 'capture' and 'quad': the UVC capture device id (MediaDeviceInfo.deviceId). */
+  deviceId?: string;
+  quadrant?: Quadrant; // 0=TL 1=TR 2=BL 3=BR; only for type:'quad'
+}
 
 /**
  * Per-camera UI customization, persisted in the profile but **opaque to core** — the manager
