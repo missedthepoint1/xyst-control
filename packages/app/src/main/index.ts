@@ -4,6 +4,7 @@ import { CameraManager, createApiServer } from '@xyst/core';
 import { resolveConfigPath } from './config-path.js';
 import { registerIpc } from './ipc.js';
 import { resolveApiPort } from './api-port.js';
+import { resolveApiToken } from './api-token.js';
 
 // Name the app so the macOS menu bar reads "XYST CONTROL" instead of "Electron"
 // (in dev the binary is Electron; setName + the appMenu role override it).
@@ -97,7 +98,8 @@ async function main(): Promise<void> {
   const mgr = new CameraManager(resolveConfigPath());
   await mgr.load();
   registerIpc(mgr, () => win);
-  const api = createApiServer(mgr);
+  const apiToken = resolveApiToken();
+  const api = createApiServer(mgr, { token: apiToken });
   // The REST API hosts the live-view preview (preview.jpg) and SSE, so the renderer needs a
   // port that actually bound. A port conflict (a stuck prior instance, another app) must never
   // crash us AND must not silently kill live view — so bind the next free port and tell the
@@ -105,6 +107,7 @@ async function main(): Promise<void> {
   const apiPort = await listenWithFallback(api, resolveApiPort(), '127.0.0.1');
   const apiBase = apiPort ? `http://127.0.0.1:${apiPort}` : '';
   ipcMain.handle('app:apiBase', () => apiBase);
+  ipcMain.handle('app:apiToken', () => apiToken);
   ipcMain.handle('window:openMultiview', () => openMultiviewPopout());
   installMenu();
   // In dev the dock shows Electron's icon (packaged apps use the .icns automatically) —
