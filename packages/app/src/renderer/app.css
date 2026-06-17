@@ -444,3 +444,12 @@
 }
 .theme-select:hover { border-color: var(--border-strong); }
 .theme-select option { color: #111; }
+
+/* ---------- update banner ---------- */
+.update-banner {
+  display: flex; align-items: center; gap: 10px;
+  margin: 8px 12px; padding: 8px 12px;
+  background: var(--panel, #14181d); border: 1px solid var(--accent, #3b82f6);
+  border-radius: 8px; font-size: 13px;
+}
+.update-banner__msg { margin-right: auto; font-weight: 600; }
