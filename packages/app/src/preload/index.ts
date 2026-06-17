@@ -52,6 +52,13 @@ const api = {
   },
   getApiBase: () => ipcRenderer.invoke('app:apiBase') as Promise<string>,
   getApiToken: () => ipcRenderer.invoke('app:apiToken') as Promise<string>,
+  onUpdateStatus: (cb: (status: unknown) => void) => {
+    const h = (_e: unknown, status: unknown) => cb(status);
+    ipcRenderer.on('update:status', h);
+    return () => ipcRenderer.off('update:status', h);
+  },
+  installUpdate: () => ipcRenderer.invoke('update:install'),
+  skipUpdate: (version: string) => ipcRenderer.invoke('update:skip', version),
   onRemoved: (cb: (id: string) => void) => {
     const h = (_e: unknown, id: string) => cb(id);
     ipcRenderer.on('camera:removed', h);

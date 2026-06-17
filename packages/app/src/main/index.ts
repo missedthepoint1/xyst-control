@@ -5,6 +5,7 @@ import { resolveConfigPath } from './config-path.js';
 import { registerIpc } from './ipc.js';
 import { resolveApiPort } from './api-port.js';
 import { resolveApiToken } from './api-token.js';
+import { setupAutoUpdater, skipUpdateVersion, installDownloadedUpdate } from './updater.js';
 
 // Name the app so the macOS menu bar reads "XYST CONTROL" instead of "Electron"
 // (in dev the binary is Electron; setName + the appMenu role override it).
@@ -145,6 +146,9 @@ async function main(): Promise<void> {
   ipcMain.handle('app:apiToken', () => apiToken);
   ipcMain.handle('window:openMultiview', () => openMultiviewPopout());
   installMenu();
+  setupAutoUpdater();
+  ipcMain.handle('update:install', () => installDownloadedUpdate());
+  ipcMain.handle('update:skip', (_e, version: string) => skipUpdateVersion(version));
   // In dev the dock shows Electron's icon (packaged apps use the .icns automatically) —
   // set it from the build PNG so the dev runtime also shows the XYST lens.
   if (process.platform === 'darwin' && process.env.ELECTRON_RENDERER_URL) {
