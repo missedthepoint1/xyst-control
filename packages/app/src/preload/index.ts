@@ -51,6 +51,7 @@ const api = {
     return () => ipcRenderer.off('camera:focusPoints', h);
   },
   getApiBase: () => ipcRenderer.invoke('app:apiBase') as Promise<string>,
+  getApiToken: () => ipcRenderer.invoke('app:apiToken') as Promise<string>,
   onRemoved: (cb: (id: string) => void) => {
     const h = (_e: unknown, id: string) => cb(id);
     ipcRenderer.on('camera:removed', h);
