@@ -1,12 +1,15 @@
 import type { CameraPreset, CameraState, ControlId, FocusPoint } from '@xyst/core';
 
 export class XystApiClient {
-  constructor(private base: string) {}
+  constructor(private base: string, private authHeader: Record<string, string> = {}) {}
 
   private async req(method: string, path: string, body?: unknown): Promise<unknown> {
     const res = await fetch(`${this.base}${path}`, {
       method,
-      headers: body !== undefined ? { 'content-type': 'application/json' } : undefined,
+      headers: {
+        ...this.authHeader,
+        ...(body !== undefined ? { 'content-type': 'application/json' } : {}),
+      },
       body: body !== undefined ? JSON.stringify(body) : undefined,
     });
     if (!res.ok) throw new Error(`API ${method} ${path} -> ${res.status}`);

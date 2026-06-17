@@ -4,10 +4,24 @@ import { CameraManager, createApiServer } from '@xyst/core';
 import { resolveConfigPath } from './config-path.js';
 import { registerIpc } from './ipc.js';
 import { resolveApiPort } from './api-port.js';
+import { resolveApiToken } from './api-token.js';
+import { setupAutoUpdater, skipUpdateVersion, installDownloadedUpdate } from './updater.js';
 
 // Name the app so the macOS menu bar reads "XYST CONTROL" instead of "Electron"
 // (in dev the binary is Electron; setName + the appMenu role override it).
 app.setName('XYST CONTROL');
+
+// Never let a stray async throw take down the app mid-show — log and keep running. Local only;
+// no remote crash upload (the app sends nothing off-machine).
+process.on('uncaughtException', (err) => console.error('[uncaughtException]', err));
+process.on('unhandledRejection', (reason) => console.error('[unhandledRejection]', reason));
+
+/** True when a URL is the app's own renderer (file:// in prod, or the dev server in dev). */
+function isFirstParty(url: string): boolean {
+  if (url.startsWith('file://')) return true;
+  const dev = process.env.ELECTRON_RENDERER_URL;
+  return !!dev && url.startsWith(dev);
+}
 
 let win: BrowserWindow | null = null;
 let popout: BrowserWindow | null = null;
@@ -92,12 +106,41 @@ function listenWithFallback(
 }
 
 async function main(): Promise<void> {
-  // Grant camera/mic so SDI/HDMI capture-card video works (local trusted app).
-  session.defaultSession.setPermissionRequestHandler((_wc, permission, cb) => cb(permission === 'media'));
+  // Grant camera/mic only to first-party content (SDI/HDMI capture-card live view). Any other
+  // origin (should never happen — we never navigate away) is denied.
+  session.defaultSession.setPermissionRequestHandler((wc, permission, cb) =>
+    cb(permission === 'media' && isFirstParty(wc.getURL())));
+
+  // Lock the shell down: deny all window.open, block navigation away from first-party content.
+  app.on('web-contents-created', (_e, contents) => {
+    contents.setWindowOpenHandler(() => ({ action: 'deny' }));
+    contents.on('will-navigate', (details) => { if (!isFirstParty(details.url)) details.preventDefault(); });
+    contents.on('will-redirect', (details) => { if (!isFirstParty(details.url)) details.preventDefault(); });
+  });
+
+  // Content-Security-Policy on the renderer. Packaged-only: a strict CSP would break the Vite dev
+  // server's inline HMR client + websocket. img/connect allow the loopback API (preview + SSE).
+  if (app.isPackaged) {
+    session.defaultSession.webRequest.onHeadersReceived((details, cb) => {
+      cb({
+        responseHeaders: {
+          ...details.responseHeaders,
+          'Content-Security-Policy': [
+            "default-src 'self'; " +
+            "img-src 'self' http://127.0.0.1:* http://localhost:* data: blob:; " +
+            "media-src 'self' blob:; " +
+            "connect-src 'self' http://127.0.0.1:* http://localhost:*; " +
+            "script-src 'self'; style-src 'self' 'unsafe-inline'",
+          ],
+        },
+      });
+    });
+  }
   const mgr = new CameraManager(resolveConfigPath());
   await mgr.load();
   registerIpc(mgr, () => win);
-  const api = createApiServer(mgr);
+  const apiToken = resolveApiToken();
+  const api = createApiServer(mgr, { token: apiToken });
   // The REST API hosts the live-view preview (preview.jpg) and SSE, so the renderer needs a
   // port that actually bound. A port conflict (a stuck prior instance, another app) must never
   // crash us AND must not silently kill live view — so bind the next free port and tell the
@@ -105,8 +148,12 @@ async function main(): Promise<void> {
   const apiPort = await listenWithFallback(api, resolveApiPort(), '127.0.0.1');
   const apiBase = apiPort ? `http://127.0.0.1:${apiPort}` : '';
   ipcMain.handle('app:apiBase', () => apiBase);
+  ipcMain.handle('app:apiToken', () => apiToken);
   ipcMain.handle('window:openMultiview', () => openMultiviewPopout());
   installMenu();
+  setupAutoUpdater();
+  ipcMain.handle('update:install', () => installDownloadedUpdate());
+  ipcMain.handle('update:skip', (_e, version: string) => skipUpdateVersion(version));
   // In dev the dock shows Electron's icon (packaged apps use the .icns automatically) —
   // set it from the build PNG so the dev runtime also shows the XYST lens.
   if (process.platform === 'darwin' && process.env.ELECTRON_RENDERER_URL) {

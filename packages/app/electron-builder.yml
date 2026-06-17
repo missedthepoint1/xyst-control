@@ -21,6 +21,7 @@ mac:
   entitlementsInherit: build/entitlements.mac.plist
   target:
     - dmg
+    - zip
 dmg:
   title: ${productName}
 win:
@@ -32,3 +33,9 @@ linux:
   category: AudioVideo
   target:
     - AppImage
+# Auto-update feed. electron-builder emits latest-mac.yml / latest.yml here so electron-updater
+# (mac + win) can find new releases. owner/repo come from the `origin` remote.
+publish:
+  provider: github
+  owner: missedthepoint1
+  repo: xyst-control

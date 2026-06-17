@@ -1,6 +1,6 @@
 import { InstanceBase, InstanceStatus, runEntrypoint } from '@companion-module/base';
 import type { CameraPreset, CameraState, FocusPoint } from '@xyst/core';
-import { type XystConfig, getConfigFields, baseUrl } from './config.js';
+import { type XystConfig, getConfigFields, baseUrl, authHeaders } from './config.js';
 import { XystApiClient } from './api.js';
 import { CameraStore } from './state.js';
 import { subscribeEvents, type SseHandle } from './sse.js';
@@ -33,7 +33,7 @@ class ModuleInstance extends InstanceBase<XystConfig> {
 
   private async start(): Promise<void> {
     this.updateStatus(InstanceStatus.Connecting);
-    this.api = new XystApiClient(baseUrl(this.cfg));
+    this.api = new XystApiClient(baseUrl(this.cfg), authHeaders(this.cfg));
     try {
       const cameras = await this.api.getCameras();
       this.store.setCameras(cameras);
@@ -49,7 +49,8 @@ class ModuleInstance extends InstanceBase<XystConfig> {
     this.pushVariableValues();
     this.sse = subscribeEvents(`${baseUrl(this.cfg)}/api/events`,
       (event, data) => this.onEvent(event, data),
-      () => this.updateStatus(InstanceStatus.ConnectionFailure));
+      () => this.updateStatus(InstanceStatus.ConnectionFailure),
+      authHeaders(this.cfg));
   }
 
   private onEvent(event: string, data: string): void {

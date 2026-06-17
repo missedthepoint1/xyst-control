@@ -1,6 +1,6 @@
 {
   "name": "@xyst/app",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "description": "Wired-IP camera control for live production (Canon Cinema EOS + CCAPI)",
   "author": "XYST <zak@xyst.la>",
   "type": "module",
@@ -11,10 +11,12 @@
     "typecheck": "tsc --noEmit -p tsconfig.node.json && tsc --noEmit -p tsconfig.json",
     "icon": "node ../../scripts/make-icon.mjs && iconutil -c icns -o build/icon.icns build/icon.iconset",
     "package": "electron-vite build && electron-builder",
-    "package:dir": "electron-vite build && electron-builder --dir"
+    "package:dir": "electron-vite build && electron-builder --dir",
+    "test": "vitest run"
   },
   "dependencies": {
-    "@xyst/core": "workspace:*"
+    "@xyst/core": "workspace:*",
+    "electron-updater": "^6.8.9"
   },
   "devDependencies": {
     "@radix-ui/react-select": "^2.1.1",

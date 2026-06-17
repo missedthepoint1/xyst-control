@@ -9,6 +9,7 @@ import { AddCameraForm } from './components/AddCameraForm.js';
 import { Multiview } from './components/Multiview.js';
 import { VideoPanel } from './components/VideoPanel.js';
 import { ErrorBoundary } from './components/ErrorBoundary.js';
+import { UpdateBanner } from './components/UpdateBanner.js';
 import { useCameras } from './hooks/useCameras.js';
 import { useApiBase } from './hooks/useApiBase.js';
 import { useOsd } from './hooks/useOsd.js';
@@ -160,6 +161,7 @@ function App() {
       theme={theme}
       onTheme={(t) => { setTheme(t); setThemeState(t); }}
     >
+      <UpdateBanner />
       {selected ? (
         <div className="single">
           <button className="btn btn--ghost single__back" onClick={() => setSingle(null)}>← Multiview</button>

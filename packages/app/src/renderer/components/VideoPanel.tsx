@@ -4,6 +4,7 @@ import { quadrantPosition } from '@xyst/core/video';
 import { applyViewAssist, type ResolvedViewAssist } from '../viewAssist.js';
 import { useCaptureStream, retryCapture } from '../captureStreams.js';
 import { useVideoInputs, resolveDeviceId } from '../videoDevices.js';
+import { useApiToken, withToken } from '../hooks/useApiToken.js';
 /** Inline crop offsets to bring one quadrant of a 4K frame into view; sizing/fit live in CSS. */
 function quadStyle(q: 0 | 1 | 2 | 3): CSSProperties {
   const { col, row } = quadrantPosition(q);
@@ -23,6 +24,7 @@ export function VideoPanel({ cameraId, source, recording, apiBase, name, osd, sh
   onSelect?: () => void; onFocus?: (x: number, y: number) => void;
 }) {
   const type = source?.type ?? 'none';
+  const token = useApiToken();
   const imgRef = useRef<HTMLImageElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -35,10 +37,10 @@ export function VideoPanel({ cameraId, source, recording, apiBase, name, osd, sh
   const [guide, setGuide] = useState<Guide | null>(null);
 
   useEffect(() => {
-    if (type !== 'protocol' || !apiBase) return;
+    if (type !== 'protocol' || !apiBase || !token) return;
     const img = imgRef.current; if (!img) return;
     let stopped = false; let timer: ReturnType<typeof setTimeout> | undefined;
-    const load = () => { if (!stopped) img.src = `${apiBase}/api/cameras/${cameraId}/preview.jpg?t=${Date.now()}`; };
+    const load = () => { if (!stopped) img.src = withToken(`${apiBase}/api/cameras/${cameraId}/preview.jpg?t=${Date.now()}`, token); };
     const onLoad = () => {
       setErr(false);
       // Re-grade in a try/catch so a readback failure (e.g. a tainted canvas) can never stop the
@@ -53,14 +55,14 @@ export function VideoPanel({ cameraId, source, recording, apiBase, name, osd, sh
     img.addEventListener('load', onLoad); img.addEventListener('error', onError);
     load();
     return () => { stopped = true; if (timer) clearTimeout(timer); img.removeEventListener('load', onLoad); img.removeEventListener('error', onError); img.removeAttribute('src'); };
-  }, [type, apiBase, cameraId]);
+  }, [type, apiBase, cameraId, token]);
 
   useEffect(() => {
-    if (type === 'none' || !apiBase || !showOsd) { setBoxes([]); setGuide(null); return; }
+    if (type === 'none' || !apiBase || !token || !showOsd) { setBoxes([]); setGuide(null); return; }
     let stopped = false; let timer: ReturnType<typeof setTimeout> | undefined;
     const poll = async () => {
       try {
-        const r = await fetch(`${apiBase}/api/cameras/${cameraId}/meta?t=${Date.now()}`);
+        const r = await fetch(withToken(`${apiBase}/api/cameras/${cameraId}/meta?t=${Date.now()}`, token));
         if (r.ok) { const m = await r.json() as { detect?: DetectBox[]; fguide?: Guide }; if (!stopped) { setBoxes(m.detect ?? []); setGuide(m.fguide ?? null); } }
         else { if (!stopped) { setBoxes([]); setGuide(null); } }
       } catch { if (!stopped) { setBoxes([]); setGuide(null); } }
@@ -68,7 +70,7 @@ export function VideoPanel({ cameraId, source, recording, apiBase, name, osd, sh
     };
     poll();
     return () => { stopped = true; if (timer) clearTimeout(timer); };
-  }, [type, apiBase, cameraId, showOsd]);
+  }, [type, apiBase, cameraId, showOsd, token]);
 
   const isDeviceSource = type === 'capture' || type === 'quad';
   // Resolve to the device's CURRENT id (it churns on cable/link changes) — match by saved id,

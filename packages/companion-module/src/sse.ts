@@ -40,6 +40,7 @@ export function subscribeEvents(
   url: string,
   onEvent: (event: string, data: string) => void,
   onError?: (err: Error) => void,
+  headers: Record<string, string> = {},
 ): SseHandle {
   let closed = false;
   let ctrl = new AbortController();
@@ -48,7 +49,7 @@ export function subscribeEvents(
     while (!closed) {
       ctrl = new AbortController();
       try {
-        const res = await fetch(url, { signal: ctrl.signal, headers: { accept: 'text/event-stream' } });
+        const res = await fetch(url, { signal: ctrl.signal, headers: { accept: 'text/event-stream', ...headers } });
         if (!res.body) throw new Error(`SSE ${res.status}`);
         const parser = new SseParser(onEvent);
         const reader = res.body.getReader();
