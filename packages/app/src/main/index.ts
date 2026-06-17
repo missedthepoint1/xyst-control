@@ -10,6 +10,13 @@ import { resolveApiToken } from './api-token.js';
 // (in dev the binary is Electron; setName + the appMenu role override it).
 app.setName('XYST CONTROL');
 
+/** True when a URL is the app's own renderer (file:// in prod, or the dev server in dev). */
+function isFirstParty(url: string): boolean {
+  if (url.startsWith('file://')) return true;
+  const dev = process.env.ELECTRON_RENDERER_URL;
+  return !!dev && url.startsWith(dev);
+}
+
 let win: BrowserWindow | null = null;
 let popout: BrowserWindow | null = null;
 
@@ -93,8 +100,36 @@ function listenWithFallback(
 }
 
 async function main(): Promise<void> {
-  // Grant camera/mic so SDI/HDMI capture-card video works (local trusted app).
-  session.defaultSession.setPermissionRequestHandler((_wc, permission, cb) => cb(permission === 'media'));
+  // Grant camera/mic only to first-party content (SDI/HDMI capture-card live view). Any other
+  // origin (should never happen — we never navigate away) is denied.
+  session.defaultSession.setPermissionRequestHandler((wc, permission, cb) =>
+    cb(permission === 'media' && isFirstParty(wc.getURL())));
+
+  // Lock the shell down: deny all window.open, block navigation away from first-party content.
+  app.on('web-contents-created', (_e, contents) => {
+    contents.setWindowOpenHandler(() => ({ action: 'deny' }));
+    contents.on('will-navigate', (details) => { if (!isFirstParty(details.url)) details.preventDefault(); });
+    contents.on('will-redirect', (details) => { if (!isFirstParty(details.url)) details.preventDefault(); });
+  });
+
+  // Content-Security-Policy on the renderer. Packaged-only: a strict CSP would break the Vite dev
+  // server's inline HMR client + websocket. img/connect allow the loopback API (preview + SSE).
+  if (app.isPackaged) {
+    session.defaultSession.webRequest.onHeadersReceived((details, cb) => {
+      cb({
+        responseHeaders: {
+          ...details.responseHeaders,
+          'Content-Security-Policy': [
+            "default-src 'self'; " +
+            "img-src 'self' http://127.0.0.1:* http://localhost:* data: blob:; " +
+            "media-src 'self' blob:; " +
+            "connect-src 'self' http://127.0.0.1:* http://localhost:*; " +
+            "script-src 'self'; style-src 'self' 'unsafe-inline'",
+          ],
+        },
+      });
+    });
+  }
   const mgr = new CameraManager(resolveConfigPath());
   await mgr.load();
   registerIpc(mgr, () => win);
