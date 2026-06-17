@@ -10,6 +10,14 @@ ENV_FILE="${XYST_NOTARIZE_ENV:-$HOME/.xyst-notarize.env}"
 # shellcheck disable=SC1090
 source "$ENV_FILE"
 
+# Signing identity: use APPLE_SIGN_IDENTITY if set, else auto-detect the single Developer ID
+# Application identity from the login keychain.
+if [ -z "${APPLE_SIGN_IDENTITY:-}" ]; then
+  APPLE_SIGN_IDENTITY="$(security find-identity -v -p codesigning | grep -m1 'Developer ID Application' | sed -E 's/.*"(.*)".*/\1/')"
+fi
+[ -n "$APPLE_SIGN_IDENTITY" ] || { echo "no Developer ID Application identity found (set APPLE_SIGN_IDENTITY in $ENV_FILE)" >&2; exit 1; }
+echo "Using signing identity: $APPLE_SIGN_IDENTITY"
+
 DMG="${1:-}"
 if [ -z "$DMG" ]; then
   DMG="$(ls -t packages/app/release/*.dmg 2>/dev/null | head -1 || true)"
