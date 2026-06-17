@@ -11,6 +11,11 @@ import { setupAutoUpdater, skipUpdateVersion, installDownloadedUpdate } from './
 // (in dev the binary is Electron; setName + the appMenu role override it).
 app.setName('XYST CONTROL');
 
+// Never let a stray async throw take down the app mid-show — log and keep running. Local only;
+// no remote crash upload (the app sends nothing off-machine).
+process.on('uncaughtException', (err) => console.error('[uncaughtException]', err));
+process.on('unhandledRejection', (reason) => console.error('[unhandledRejection]', reason));
+
 /** True when a URL is the app's own renderer (file:// in prod, or the dev server in dev). */
 function isFirstParty(url: string): boolean {
   if (url.startsWith('file://')) return true;
