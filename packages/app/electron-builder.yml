@@ -19,9 +19,12 @@ mac:
   hardenedRuntime: true
   entitlements: build/entitlements.mac.plist
   entitlementsInherit: build/entitlements.mac.plist
+  # Universal (arm64 + x64) so the notarized build runs natively on Apple Silicon AND Intel Macs.
   target:
-    - dmg
-    - zip
+    - target: dmg
+      arch: universal
+    - target: zip
+      arch: universal
 dmg:
   title: ${productName}
 win:
