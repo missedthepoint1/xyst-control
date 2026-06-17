@@ -12,7 +12,7 @@ function statusSummary(s: CameraState) {
     recording: s.record.recording, controls };
 }
 
-export interface ApiServerOptions { sse?: boolean }
+export interface ApiServerOptions { sse?: boolean; token?: string }
 
 export function createApiServer(mgr: CameraManager, _opts: ApiServerOptions = {}): Server {
   // Each SSE client registers 3 manager listeners; lift Node's 10-listener warning cap.
@@ -92,7 +92,7 @@ export function createApiServer(mgr: CameraManager, _opts: ApiServerOptions = {}
   router.add('GET', '/api/cameras/:id/preview.jpg', async ({ params, res }) => {
     const frame = await mgr.getPreview(params.id!);
     if (!frame) { res.writeHead(502, { 'content-type': 'application/json' }); res.end(JSON.stringify({ error: 'no preview' })); return; }
-    res.writeHead(200, { 'content-type': frame.contentType, 'cache-control': 'no-store', 'access-control-allow-origin': '*' });
+    res.writeHead(200, { 'content-type': frame.contentType, 'cache-control': 'no-store' });
     res.end(Buffer.from(frame.data));
   });
 
@@ -110,7 +110,6 @@ export function createApiServer(mgr: CameraManager, _opts: ApiServerOptions = {}
       'content-type': 'text/event-stream',
       'cache-control': 'no-cache',
       connection: 'keep-alive',
-      'access-control-allow-origin': '*',
     });
     res.write('event: hello\ndata: {}\n\n');
     sse(res, 'osd', { osd: mgr.getOsd() }); // initial app-level state
@@ -136,7 +135,8 @@ export function createApiServer(mgr: CameraManager, _opts: ApiServerOptions = {}
     return undefined; // streaming response managed here; handle() must not double-send
   });
 
-  return createServer((req, res) => void handle(router, req, res));
+  const token = _opts.token;
+  return createServer((req, res) => void handle(router, req, res, token));
 }
 
 function ok() { return { ok: true }; }
@@ -147,10 +147,14 @@ function required<T>(v: T | undefined): T {
 
 class HttpError extends Error { constructor(readonly code: number, msg: string) { super(msg); } }
 
-async function handle(router: Router, req: IncomingMessage, res: ServerResponse): Promise<void> {
-  cors(res);
+async function handle(router: Router, req: IncomingMessage, res: ServerResponse, token?: string): Promise<void> {
+  cors(res, req);
   if (req.method === 'OPTIONS') { res.writeHead(204); res.end(); return; }
   const url = new URL(req.url ?? '/', 'http://x');
+  if (token && url.pathname !== '/api/health') {
+    if (!hostIsLoopback(req.headers.host)) return send(res, 403, { error: 'forbidden host' });
+    if (!tokenOk(req, url, token)) return send(res, 401, { error: 'unauthorized' });
+  }
   const m = router.match(req.method ?? 'GET', url.pathname);
   if (!m) return send(res, 404, { error: 'not found' });
   try {
@@ -166,10 +170,34 @@ async function handle(router: Router, req: IncomingMessage, res: ServerResponse)
   }
 }
 
-function cors(res: ServerResponse): void {
-  res.setHeader('access-control-allow-origin', '*');
+function cors(res: ServerResponse, req: IncomingMessage): void {
+  // Echo the caller's Origin rather than '*'; the bearer token is the real gate, this just lets
+  // the first-party renderer (Origin "null" under file://) read responses.
+  const origin = (req.headers.origin as string) || '*';
+  res.setHeader('access-control-allow-origin', origin);
   res.setHeader('access-control-allow-methods', 'GET,POST,DELETE,OPTIONS');
-  res.setHeader('access-control-allow-headers', 'content-type');
+  res.setHeader('access-control-allow-headers', 'content-type,authorization');
+}
+
+function hostIsLoopback(host: string | undefined): boolean {
+  if (!host) return false;
+  const name = host.replace(/:\d+$/, '').replace(/^\[|\]$/g, '').toLowerCase();
+  return name === '127.0.0.1' || name === 'localhost' || name === '::1';
+}
+
+function tokenOk(req: IncomingMessage, url: URL, token: string): boolean {
+  const auth = req.headers.authorization;
+  const bearer = typeof auth === 'string' && auth.startsWith('Bearer ') ? auth.slice(7) : undefined;
+  const provided = bearer ?? url.searchParams.get('token') ?? undefined;
+  // No length pre-check: timingSafeEqualStr folds the length difference into its accumulator, so
+  // a mismatched length still returns false without leaking the token length via early-exit timing.
+  return provided !== undefined && timingSafeEqualStr(provided, token);
+}
+
+function timingSafeEqualStr(a: string, b: string): boolean {
+  let diff = a.length ^ b.length;
+  for (let i = 0; i < a.length; i++) diff |= a.charCodeAt(i) ^ b.charCodeAt(i % b.length);
+  return diff === 0;
 }
 
 async function readJson(req: IncomingMessage): Promise<unknown> {
