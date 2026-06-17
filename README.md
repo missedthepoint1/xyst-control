@@ -92,6 +92,22 @@ Grab the latest signed & notarized macOS build from the
 **[Releases page](https://github.com/missedthepoint1/xyst-control/releases/latest)** —
 download the `.dmg`, drag the app to Applications, done. No Gatekeeper prompt.
 
+## Auto-update
+
+The app checks GitHub Releases on launch + every 6h, downloads in the background, and shows an
+"Update N ready" banner. **Nothing installs until the operator clicks _Install & Restart_** — so a
+running show is never interrupted. _Skip this version_ suppresses re-notification for that release;
+_Later_ hides the banner until next launch.
+
+**Release + update test:**
+1. Ensure a prior signed release (e.g. 0.4.0) is installed.
+2. Bump to the new version, `pnpm package`, then sign + notarize + staple the artifacts
+   (`scripts/notarize-dmg.sh`).
+3. Publish the new release to GitHub Releases with the `.dmg`, `.zip`, and `latest-mac.yml`
+   (and the Windows `.exe` + `latest.yml`).
+4. Launch the installed older build → confirm the banner appears → **Install & Restart** →
+   app relaunches on the new version. Confirm **Skip this version** suppresses re-notify.
+
 ## Build from source
 
 ```bash
