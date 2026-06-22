@@ -19,6 +19,17 @@ mac:
   hardenedRuntime: true
   entitlements: build/entitlements.mac.plist
   entitlementsInherit: build/entitlements.mac.plist
+  # macOS 15+ (Sequoia/Tahoe) gates all LAN traffic behind Local Network Privacy. Without this
+  # usage string the system never prompts for the grant, so a Finder-launched app silently fails
+  # to reach cameras on the wired subnet (terminal-launched works only because it inherits the
+  # shell's grant). The string is the prompt text; its presence is what registers the app for the
+  # grant. NSBonjourServices covers the optional mDNS (`canon-<MAC>.local`) camera discovery.
+  extendInfo:
+    NSLocalNetworkUsageDescription: >-
+      XYST CONTROL connects to cameras on your local network to send control
+      commands and receive status and live preview.
+    NSBonjourServices:
+      - _http._tcp
   # Universal (arm64 + x64) so the notarized build runs natively on Apple Silicon AND Intel Macs.
   target:
     - target: dmg

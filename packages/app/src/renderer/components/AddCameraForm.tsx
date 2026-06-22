@@ -7,6 +7,37 @@ const BODIES = [
 ] as const;
 type BodyId = (typeof BODIES)[number]['id'];
 
+/**
+ * Reject a malformed host before we try to connect — a dotted-numeric address with an
+ * out-of-range octet (e.g. 10.40.268.59) otherwise resolves as a hostname and fails with a
+ * confusing "info.cgi failed" later. Hostnames (anything with a letter, e.g. canon-ab.local)
+ * pass through for mDNS. CCAPI hosts may carry an optional :port.
+ */
+function validateHost(raw: string, driver: string): string | null {
+  const trimmed = raw.trim();
+  if (!trimmed) return 'Enter the camera’s IP address.';
+
+  let hostPart = trimmed;
+  if (driver === 'ccapi') {
+    const lastColon = trimmed.lastIndexOf(':');
+    if (lastColon !== -1) {
+      hostPart = trimmed.slice(0, lastColon);
+      const portStr = trimmed.slice(lastColon + 1);
+      const port = Number(portStr);
+      if (!/^\d+$/.test(portStr) || port < 1 || port > 65535)
+        return `Invalid port “${portStr}” — use 1–65535.`;
+    }
+  }
+
+  // Looks like a numeric IPv4 (only digits and dots) → validate it strictly. Otherwise treat as a hostname.
+  if (/^[\d.]+$/.test(hostPart)) {
+    const octets = hostPart.split('.');
+    if (octets.length !== 4 || octets.some((o) => !/^\d{1,3}$/.test(o) || Number(o) > 255))
+      return `“${hostPart}” isn’t a valid IP address — each part must be 0–255 (e.g. 192.168.0.50).`;
+  }
+  return null;
+}
+
 export function AddCameraForm({ onAdded }: { onAdded: () => void }) {
   const [bodyId, setBodyId] = useState<BodyId>('c300');
   const [name, setName] = useState('C300 III');
@@ -23,6 +54,8 @@ export function AddCameraForm({ onAdded }: { onAdded: () => void }) {
   };
 
   const add = async () => {
+    const hostError = validateHost(host, body.driver);
+    if (hostError) { setError(hostError); return; }
     setBusy(true);
     setError(null);
     const id = `cam-${Date.now()}`;

@@ -58,6 +58,17 @@ describe('xcRequest', () => {
     srv.close();
   });
 
+  it('surfaces the underlying cause in the failure message', async () => {
+    // Bind then immediately close to obtain a port nobody is listening on → ECONNREFUSED.
+    const { createServer } = await import('node:http');
+    const srv = createServer();
+    await new Promise<void>((r) => srv.listen(0, '127.0.0.1', r));
+    const port = (srv.address() as import('node:net').AddressInfo).port;
+    await new Promise<void>((r) => srv.close(() => r()));
+    await expect(xcRequest(`127.0.0.1:${port}`, 'info.cgi', {}, { retries: 0, timeoutMs: 500 }))
+      .rejects.toThrow(/ECONNREFUSED/);
+  });
+
   it('xcRequestBinary fetches image bytes', async () => {
     const { xcRequestBinary } = await import('../src/xc/client.js');
     cam = new FakeCamera();

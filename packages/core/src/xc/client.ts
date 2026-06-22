@@ -48,7 +48,25 @@ export async function xcRequest(
       if (attempt < retries) await delay(Math.min(250 * 2 ** attempt, 1000));
     }
   }
-  throw new XcError(`request to ${command} failed after ${retries + 1} attempts`, lastErr);
+  throw new XcError(
+    `request to ${command} failed after ${retries + 1} attempts: ${describeCause(lastErr)}`,
+    lastErr,
+  );
+}
+
+/** Readable one-liner for a failed fetch — undici wraps the OS error in `.cause`. */
+function describeCause(err: unknown): string {
+  if (err instanceof Error) {
+    if (err.name === 'AbortError' || err.name === 'TimeoutError') return 'timed out';
+    const cause = (err as { cause?: unknown }).cause;
+    if (cause instanceof Error && cause.message) {
+      const code = (cause as { code?: string }).code;
+      return code ? `${code}: ${cause.message}` : cause.message;
+    }
+    const code = (err as { code?: string }).code;
+    return code ? `${code}: ${err.message}` : err.message;
+  }
+  return String(err);
 }
 
 async function once(
