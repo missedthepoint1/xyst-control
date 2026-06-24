@@ -53,3 +53,8 @@ publish:
   provider: github
   owner: missedthepoint1
   repo: xyst-control
+  # Publish straight to a non-draft release (default is `draft`). This lets the CI workflow add
+  # assets to an already-published release (e.g. a Windows installer onto a release cut locally on
+  # a Mac), and removes the manual "un-draft" step from the local flow. The CI prepare job (or a
+  # prior local run) pre-creates the release so concurrent artifact uploads don't race to create it.
+  releaseType: release

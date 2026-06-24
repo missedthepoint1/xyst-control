@@ -62,12 +62,14 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: ${{ github.event.inputs.ref || github.event.inputs.tag || github.ref_name }}
-      - name: Ensure a draft release exists for the tag
+      - name: Ensure a release exists for the tag
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          # Non-draft so it matches electron-builder's releaseType=release; pre-creating it means the
+          # parallel build jobs upload into one release instead of racing to create duplicates.
           if ! gh release view "$TAG" >/dev/null 2>&1; then
-            gh release create "$TAG" --draft --title "$TAG" --generate-notes
+            gh release create "$TAG" --title "$TAG" --generate-notes
           fi
       - id: set
         name: Compute build matrix
