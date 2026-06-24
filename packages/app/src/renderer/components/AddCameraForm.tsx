@@ -1,4 +1,9 @@
 import { useState } from 'react';
+import { usePref } from '../hooks/usePref.js';
+import { pushRecentHost } from '../recentHosts.js';
+
+/** Pre-fill so the operator types only the last octet; the LAN is a fixed /24 (see CLAUDE.md). */
+const HOST_PREFIX = '192.168.10.';
 
 const BODIES = [
   { id: 'c300', label: 'Canon EOS C300 Mark III', driver: 'xc', name: 'C300 III' },
@@ -41,7 +46,9 @@ function validateHost(raw: string, driver: string): string | null {
 export function AddCameraForm({ onAdded }: { onAdded: () => void }) {
   const [bodyId, setBodyId] = useState<BodyId>('c300');
   const [name, setName] = useState('C300 III');
-  const [host, setHost] = useState('192.168.100.1');
+  const [host, setHost] = useState(HOST_PREFIX);
+  // Previously-used hosts (most-recent-first, capped at 10), offered as a datalist on the IP field.
+  const [recentHosts, setRecentHosts] = usePref<string[]>('recentHosts', []);
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [busy, setBusy] = useState(false);
@@ -62,6 +69,8 @@ export function AddCameraForm({ onAdded }: { onAdded: () => void }) {
     const auth = username || password ? { username, password } : undefined;
     try {
       await window.xyst.addCamera({ id, name, driver: body.driver, host, auth });
+      // The camera now exists in config = "used" — remember its host even if connect fails below.
+      setRecentHosts(pushRecentHost(recentHosts, host));
       await window.xyst.connect(id);
       onAdded();
     } catch (err) {
@@ -82,7 +91,11 @@ export function AddCameraForm({ onAdded }: { onAdded: () => void }) {
       </label>
       <input className="input" value={name} onChange={(e) => setName(e.target.value)} placeholder="Name" />
       <input className="input" value={host} onChange={(e) => setHost(e.target.value)}
+        list={recentHosts.length ? 'recent-hosts' : undefined} autoComplete="off"
         placeholder={body.driver === 'ccapi' ? 'IP:port (e.g. 192.168.0.50:8080)' : 'IP address (e.g. 192.168.0.50)'} />
+      {recentHosts.length > 0 && (
+        <datalist id="recent-hosts">{recentHosts.map((h) => <option key={h} value={h} />)}</datalist>
+      )}
       {body.driver === 'ccapi' && <div className="add__hint">R6 III uses CCAPI — include the port the camera shows, and enable CCAPI on the body.</div>}
       <div className="add__hint">Login — only if the camera has user authentication on</div>
       <input className="input" value={username} onChange={(e) => setUsername(e.target.value)} placeholder="Username (optional)" autoComplete="off" />
