@@ -59,6 +59,19 @@ describe('XCProtocolDriver streaming', () => {
     expect(drv.getState().timecode?.dropFrame).toBe(false);
   });
 
+  it('applies a record delta carrying only remaining-time (no f.rec.status)', async () => {
+    cam = new FakeCamera();
+    const host = await cam.listen();
+    drv = makeDriver(host);
+    await drv.connect();
+    expect(drv.getState().record.remainingMinutes).toBe(120); // fixture
+    // The stream ticks remaining time on its own, without resending f.rec.status. The merge must
+    // pick up the present sub-field rather than drop the whole record block (the old all-or-nothing bug).
+    cam.pushDelta({ 'f.rec.media1.remainingtime': '42' });
+    await vi.waitFor(() => expect(drv.getState().record.remainingMinutes).toBe(42), { timeout: 1000 });
+    expect(drv.getState().record.recording).toBe(false); // unchanged; not clobbered by the default
+  });
+
   it('preserves a control list when a body delta carries only the value', async () => {
     cam = new FakeCamera();
     const host = await cam.listen();

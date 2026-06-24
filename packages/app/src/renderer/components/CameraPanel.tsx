@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import type { ComponentProps } from 'react';
 import type { ControlState } from '@xyst/core';
 import type { CameraState } from '@xyst/core';
@@ -75,8 +75,9 @@ export function CameraPanel({ state, labels = true, onRename, dragHandleProps, d
     if (v && v !== (state.name ?? '') && onRename) onRename(v);
   };
 
-  // Camera-style OSD info rendered ON the live feed (built from discovered state).
-  const osd = buildOsd(state);
+  // Camera-style OSD info rendered ON the live feed (built from discovered state). Memoised on
+  // `state` so it isn't reallocated on unrelated re-renders (and stays a stable prop to VideoPanel).
+  const osd = useMemo(() => buildOsd(state), [state]);
 
   return (
     <section className={`card panel${rec ? ' is-rec' : ''}${isOver ? ' is-drop' : ''}`} {...dragItemProps}>

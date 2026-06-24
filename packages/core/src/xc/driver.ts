@@ -2,7 +2,7 @@ import { EventEmitter } from 'node:events';
 import type { CameraDriver } from '../driver.js';
 import type {
   CameraProfile, CameraState, CameraSnapshot, ConnectionStatus, ControlId, ControlSettings,
-  ControlState,
+  ControlState, RecordState,
 } from '../types.js';
 import { xcRequest, xcRequestBinary } from './client.js';
 import { fetchMeta } from './meta.js';
@@ -167,8 +167,14 @@ export class XCProtocolDriver extends EventEmitter implements CameraDriver {
       const { map } = await xcRequest(this.profile.host, 'control.cgi', params, {
         auth: this.profile.auth, timeoutMs: this.timeoutMs,
       });
+      // The control.cgi echo already carries the changed keys — apply + surface them now so the
+      // command's effect is reflected even if the follow-up read fails.
       this.mergeMap(map);
-      await this.refresh();
+      this.emit('state', this.getState());
+      // The follow-up full read is best-effort reconciliation; a transient failure must NOT turn a
+      // command the camera already executed (e.g. REC) into a reported failure. The stream/reconcile
+      // poll will catch up regardless.
+      await this.refresh().catch(() => {});
     } finally {
       this.controlInFlight = false;
     }
@@ -181,7 +187,8 @@ export class XCProtocolDriver extends EventEmitter implements CameraDriver {
       await xcRequest(this.profile.host, 'configuration.cgi', params, {
         auth: this.profile.auth, timeoutMs: this.timeoutMs,
       });
-      await this.refresh();
+      // Best-effort read-back (see control()); configuration.cgi already applied on the camera.
+      await this.refresh().catch(() => {});
     } finally {
       this.controlInFlight = false;
     }
@@ -203,9 +210,17 @@ export class XCProtocolDriver extends EventEmitter implements CameraDriver {
     const merged = interpretInfo(map);
     if ('c.1.type' in map && merged.model) this.snapshot.model = merged.model;
     if ('c.1.exp' in map && merged.exposureMode) this.snapshot.exposureMode = merged.exposureMode;
-    if ('f.rec.status' in map) {
-      this.snapshot.record = { ...this.snapshot.record, ...merged.record };
-    }
+    // Merge only the rec sub-fields PRESENT in this delta. interpretInfo always emits a full
+    // record object (recording:false by default), so an all-or-nothing spread gated on
+    // f.rec.status would drop remaining-time / media-status deltas that the stream sends on their
+    // own (they tick independently of the rec flag) — those used to surface only on the 5s reconcile.
+    const record: RecordState = { ...this.snapshot.record };
+    let recChanged = false;
+    if ('f.rec.status' in map) { record.recording = merged.record.recording; recChanged = true; }
+    if ('f.rec.media1.status' in map) { record.media1 = merged.record.media1; recChanged = true; }
+    if ('f.rec.media2.status' in map) { record.media2 = merged.record.media2; recChanged = true; }
+    if ('f.rec.media1.remainingtime' in map) { record.remainingMinutes = merged.record.remainingMinutes; recChanged = true; }
+    if (recChanged) this.snapshot.record = record;
     // Merge only the TC sub-fields present in this delta (interpretInfo already omits the rest),
     // so a value-only tick keeps the previously-known run/df/mode.
     if (merged.timecode) {

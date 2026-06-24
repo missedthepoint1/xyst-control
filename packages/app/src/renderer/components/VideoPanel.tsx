@@ -18,10 +18,10 @@ export type OsdInfo = {
   tc?: string; rec: boolean; remaining?: number; battery?: string;
 };
 
-export function VideoPanel({ cameraId, source, recording, apiBase, name, osd, showOsd = true, showTc = true, viewAssist = null, onSelect, onFocus }: {
+export function VideoPanel({ cameraId, source, recording, apiBase, name, osd, showOsd = true, showTc = true, viewAssist = null, tile = false, onSelect, onFocus }: {
   cameraId: string; source?: VideoSource; recording: boolean; apiBase: string;
   name?: string; osd?: OsdInfo; showOsd?: boolean; showTc?: boolean; viewAssist?: ResolvedViewAssist | null;
-  onSelect?: () => void; onFocus?: (x: number, y: number) => void;
+  tile?: boolean; onSelect?: () => void; onFocus?: (x: number, y: number) => void;
 }) {
   const type = source?.type ?? 'none';
   const token = useApiToken();
@@ -42,11 +42,13 @@ export function VideoPanel({ cameraId, source, recording, apiBase, name, osd, sh
     let stopped = false; let timer: ReturnType<typeof setTimeout> | undefined;
     const load = () => { if (!stopped) img.src = withToken(`${apiBase}/api/cameras/${cameraId}/preview.jpg?t=${Date.now()}`, token); };
     const onLoad = () => {
-      setErr(false);
+      // Only re-render on the off→on transition; setErr(false) every frame (~11/s) would otherwise
+      // churn React continuously once the feed is healthy. Returning the same value bails the update.
+      setErr((e) => (e ? false : e));
       // Re-grade in a try/catch so a readback failure (e.g. a tainted canvas) can never stop the
-      // poll loop; schedule the next frame regardless.
+      // poll loop; schedule the next frame regardless. Tiles grade downscaled (see applyViewAssist).
       if (vaRef.current && canvasRef.current) {
-        try { applyViewAssist(img, canvasRef.current, vaRef.current.transform, vaRef.current.intensity); }
+        try { applyViewAssist(img, canvasRef.current, vaRef.current.transform, vaRef.current.intensity, tile ? 960 : undefined); }
         catch { /* leave the drawn frame */ }
       }
       timer = setTimeout(load, 90);
@@ -55,10 +57,14 @@ export function VideoPanel({ cameraId, source, recording, apiBase, name, osd, sh
     img.addEventListener('load', onLoad); img.addEventListener('error', onError);
     load();
     return () => { stopped = true; if (timer) clearTimeout(timer); img.removeEventListener('load', onLoad); img.removeEventListener('error', onError); img.removeAttribute('src'); };
-  }, [type, apiBase, cameraId, token]);
+  }, [type, apiBase, cameraId, token, tile]);
 
+  // In the multiview TAB, tiles set onSelect and the detection boxes / guide / OSD are all gated by
+  // !onSelect below — so polling /meta there would fetch + parse + re-render at 150ms for output that
+  // is never shown. Skip the poll in that mode (the popout multiview has no onSelect and still polls).
+  const selectable = !!onSelect;
   useEffect(() => {
-    if (type === 'none' || !apiBase || !token || !showOsd) { setBoxes([]); setGuide(null); return; }
+    if (type === 'none' || !apiBase || !token || !showOsd || selectable) { setBoxes([]); setGuide(null); return; }
     let stopped = false; let timer: ReturnType<typeof setTimeout> | undefined;
     const poll = async () => {
       try {
@@ -70,7 +76,7 @@ export function VideoPanel({ cameraId, source, recording, apiBase, name, osd, sh
     };
     poll();
     return () => { stopped = true; if (timer) clearTimeout(timer); };
-  }, [type, apiBase, cameraId, showOsd, token]);
+  }, [type, apiBase, cameraId, showOsd, token, selectable]);
 
   const isDeviceSource = type === 'capture' || type === 'quad';
   // Resolve to the device's CURRENT id (it churns on cable/link changes) — match by saved id,

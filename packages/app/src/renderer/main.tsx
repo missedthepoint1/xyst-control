@@ -7,13 +7,12 @@ import { AppShell, type GridCols } from './components/AppShell.js';
 import { CameraPanel } from './components/CameraPanel.js';
 import { AddCameraForm } from './components/AddCameraForm.js';
 import { Multiview } from './components/Multiview.js';
-import { VideoPanel } from './components/VideoPanel.js';
+import { MultiviewVideo } from './components/MultiviewVideo.js';
 import { ErrorBoundary } from './components/ErrorBoundary.js';
 import { UpdateBanner } from './components/UpdateBanner.js';
 import { useCameras } from './hooks/useCameras.js';
 import { useApiBase } from './hooks/useApiBase.js';
 import { useOsd } from './hooks/useOsd.js';
-import { buildOsd } from './osdInfo.js';
 import { applyTheme, getTheme, setTheme, type ThemeName } from './theme.js';
 
 applyTheme(); // apply the saved theme in every window (control + popout) before first paint
@@ -104,8 +103,8 @@ function PopoutMultiview() {
           return (
             <div className={`mvtile${showLabels ? ' mvtile--labeled' : ''}`} key={i}>
               {s && (
-                <VideoPanel cameraId={s.id} source={s.video} apiBase={apiBase}
-                  recording={s.record.recording} showOsd={osd} showTc={showTc} osd={osd ? buildOsd(s) : undefined} />
+                <MultiviewVideo state={s} apiBase={apiBase}
+                  showOsd={osd} showTc={showTc} />
               )}
               {showLabels && (
                 <select className="feedsel" value={cid} aria-label="Camera for this tile"

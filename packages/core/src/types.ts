@@ -17,6 +17,14 @@ export interface ControlState {
   /** Continuous range (e.g. iris abstract value). */
   min?: number;
   max?: number;
+  /**
+   * Additive step for one up/down on a RANGED numeric control, in the control's own value units
+   * (e.g. gain is dB×10, so 5 = one 0.5 dB step). Only set for ranged controls whose native step
+   * isn't 1; stepControl defaults to 1 otherwise. Not used for list controls (they step by index),
+   * and distinct from the XC `.increment` stop-fraction CODE on ISO/shutter (3 = 1/3-stop), which
+   * describes list granularity rather than an additive delta.
+   */
+  increment?: number;
   /** Current sub-mode (e.g. shutter.mode = 'speed', wb = 'kelvin'). */
   mode?: string;
   modeList?: string[];

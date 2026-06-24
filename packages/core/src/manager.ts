@@ -1,5 +1,5 @@
 import { EventEmitter } from 'node:events';
-import { readFile, writeFile } from 'node:fs/promises';
+import { readFile, writeFile, rename } from 'node:fs/promises';
 import { randomUUID } from 'node:crypto';
 import type { CameraDriver } from './driver.js';
 import type { CameraProfile, CameraState, ControlId, ControlSettings, CameraPreset, FocusPoint } from './types.js';
@@ -14,6 +14,10 @@ export class CameraManager extends EventEmitter {
   private drivers = new Map<string, CameraDriver>();
   // App-level "show OSD on the multiview feeds" toggle — shared so the popout and Companion agree.
   private osd = false;
+  // Per-control promise chains so concurrent stepControl calls apply sequentially (see stepControl).
+  private stepChains = new Map<string, Promise<void>>();
+  // Serializes save() so concurrent config writes can't interleave (see save()).
+  private saveChain: Promise<void> = Promise.resolve();
   constructor(private configPath: string, private driverOpts: XCDriverOptions = {}) {
     super();
   }
@@ -79,8 +83,23 @@ export class CameraManager extends EventEmitter {
    * Move a control to its next/previous valid value (dir = +1 / -1). List-aware for
    * stepped controls (ISO, shutter, iris, ND, Kelvin…) and clamped for ranged ones
    * (WB CC, AF speed/response). Lives here so REST + Companion never re-implement it.
+   *
+   * Each step reads the current value, computes the neighbour, then writes — a read-modify-write.
+   * Two near-simultaneous presses (a held Stream Deck key) would otherwise both read the same
+   * value before either write's echo lands and collapse into a single step, so steps for a given
+   * control are serialized: a queued press waits for the prior write (and its state refresh) to
+   * settle, then reads the updated value. Distinct controls/cameras still step concurrently.
    */
   async stepControl(id: string, control: ControlId, dir: 1 | -1): Promise<void> {
+    const key = `${id}:${control}`;
+    const prev = this.stepChains.get(key) ?? Promise.resolve();
+    const run = prev.catch(() => {}).then(() => this.doStep(id, control, dir));
+    this.stepChains.set(key, run);
+    try { await run; }
+    finally { if (this.stepChains.get(key) === run) this.stepChains.delete(key); }
+  }
+
+  private async doStep(id: string, control: ControlId, dir: 1 | -1): Promise<void> {
     const state = this.getState(id);
     if (!state) throw new Error(`no camera with id ${id}`);
     const c = state.controls[control];
@@ -90,8 +109,14 @@ export class CameraManager extends EventEmitter {
       const i = c.list.findIndex((v) => String(v) === String(c.value));
       next = c.list[Math.max(0, Math.min(c.list.length - 1, (i < 0 ? 0 : i) + dir))];
     } else if (typeof c.value === 'number') {
+      // Step by the control's native increment (e.g. gain = 5 = 0.5 dB), defaulting to 1 for the
+      // integer scales (WB CC, AF speed/response). Round to the increment grid relative to min so an
+      // off-grid current value lands on a valid step the body will accept rather than drifting.
+      const step = c.increment && c.increment > 0 ? c.increment : 1;
       const min = c.min ?? Number.NEGATIVE_INFINITY, max = c.max ?? Number.POSITIVE_INFINITY;
-      next = Math.max(min, Math.min(max, c.value + dir));
+      const base = c.min ?? 0;
+      const grid = Math.round((c.value - base) / step) * step + base;
+      next = Math.max(min, Math.min(max, grid + dir * step));
     }
     if (next === undefined) throw new Error(`control ${control} is not steppable`);
     await this.setControl(id, control, next);
@@ -309,8 +334,18 @@ export class CameraManager extends EventEmitter {
   }
 
   private async save(): Promise<void> {
-    const cfg: ConfigFile = { cameras: this.listProfiles(), osd: this.osd };
-    await writeFile(this.configPath, JSON.stringify(cfg, null, 2));
+    // Serialize writes and swap atomically (temp file → rename) so concurrent mutators (a rename
+    // from the UI racing a savePreset from Companion) can't interleave or leave a truncated
+    // cameras.json behind on a crash mid-write. cfg is snapshotted when this task actually runs,
+    // so the last writer reflects the latest in-memory state rather than a stale clobber.
+    const run = this.saveChain.catch(() => {}).then(async () => {
+      const cfg: ConfigFile = { cameras: this.listProfiles(), osd: this.osd };
+      const tmp = `${this.configPath}.tmp`;
+      await writeFile(tmp, JSON.stringify(cfg, null, 2));
+      await rename(tmp, this.configPath);
+    });
+    this.saveChain = run;
+    await run;
   }
 }
 

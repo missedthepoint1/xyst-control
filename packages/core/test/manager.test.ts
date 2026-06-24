@@ -54,6 +54,34 @@ describe('CameraManager', () => {
     expect(mgr.getState('cam-1')?.controls.iso?.value).toBe(640);
   });
 
+  it('serializes concurrent steps so each advances (no read-modify-write collapse)', async () => {
+    cam = new FakeCamera();
+    const host = await cam.listen();
+    mgr = new CameraManager(configWith(host), { pollMs: 50 });
+    await mgr.load();
+    await mgr.connect('cam-1');
+    expect(mgr.getState('cam-1')?.controls.iso?.value).toBe(800); // list …640,800,1000,1250…
+    // Two simultaneous ISO+ presses (a held Stream Deck key). If both read 800 before either write
+    // lands they collapse to a single step (1000); serialized, the second reads 1000 and reaches 1250.
+    await Promise.all([
+      mgr.stepControl('cam-1', 'iso', 1),
+      mgr.stepControl('cam-1', 'iso', 1),
+    ]);
+    expect(mgr.getState('cam-1')?.controls.iso?.value).toBe(1250);
+  });
+
+  it('steps a ranged numeric control by its native increment (gain = 0.5 dB)', async () => {
+    cam = new FakeCamera();
+    const host = await cam.listen();
+    mgr = new CameraManager(configWith(host), { pollMs: 50 });
+    await mgr.load();
+    await mgr.connect('cam-1');
+    expect(mgr.getState('cam-1')?.controls.gain?.value).toBe(120); // 12.0 dB (dB×10)
+    await mgr.stepControl('cam-1', 'gain', 1);
+    // One step is 0.5 dB (= 5 units), not 0.1 dB — the body only accepts the 0.5 dB ladder.
+    expect(mgr.getState('cam-1')?.controls.gain?.value).toBe(125);
+  });
+
   it('re-emits state events tagged with camera id', async () => {
     cam = new FakeCamera();
     const host = await cam.listen();

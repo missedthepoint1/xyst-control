@@ -54,6 +54,7 @@ export function createApiServer(mgr: CameraManager, _opts: ApiServerOptions = {}
     return mgr.listPresets(params.id!);
   });
   router.add('POST', '/api/cameras/:id/presets', ({ params, body }) => {
+    required(mgr.getState(params.id!)); // unknown camera → 404, not a 500 from savePreset's throw
     const name = (body as { name?: string })?.name;
     if (!name) throw new HttpError(400, 'body.name required');
     return mgr.savePreset(params.id!, name);
@@ -200,10 +201,19 @@ function timingSafeEqualStr(a: string, b: string): boolean {
   return diff === 0;
 }
 
+// Control/preset/focus payloads are tiny; cap the body so a misbehaving (or hostile) localhost
+// client can't balloon the main-process heap with an unbounded or slowloris-dripped request.
+const MAX_BODY_BYTES = 1 << 20; // 1 MiB
+
 async function readJson(req: IncomingMessage): Promise<unknown> {
   if (req.method === 'GET' || req.method === 'DELETE') return undefined;
   const chunks: Buffer[] = [];
-  for await (const c of req) chunks.push(c as Buffer);
+  let size = 0;
+  for await (const c of req) {
+    size += (c as Buffer).length;
+    if (size > MAX_BODY_BYTES) { req.destroy(); throw new HttpError(413, 'request body too large'); }
+    chunks.push(c as Buffer);
+  }
   if (chunks.length === 0) return undefined;
   try { return JSON.parse(Buffer.concat(chunks).toString('utf8')); }
   catch { throw new HttpError(400, 'invalid JSON body'); }
@@ -214,7 +224,13 @@ function send(res: ServerResponse, code: number, body: unknown): void {
   res.end(JSON.stringify(body));
 }
 
+// A client that stops draining (slept laptop, stalled link) keeps its connection open while
+// res.write() queues every state delta in memory. Cap the queue: once a client is this far behind
+// it's effectively dead, so drop it (req 'close' then fires → listeners removed) and let it reconnect.
+const MAX_SSE_BACKLOG = 1 << 20; // 1 MiB queued
+
 function sse(res: ServerResponse, event: string, data: unknown): void {
   if (res.writableEnded) return;
+  if (res.writableLength > MAX_SSE_BACKLOG) { res.destroy(); return; }
   res.write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`);
 }

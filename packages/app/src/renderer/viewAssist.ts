@@ -94,12 +94,20 @@ function sampleCube(lut: Lut3D, r: number, g: number, b: number, out: [number, n
 /**
  * Re-grade a loaded preview frame into `canvas` in place: draw it, run the transform over the
  * pixels, blend back toward the original by (1 - intensity). No-op until the image has decoded.
+ *
+ * `maxWidth` caps the grading resolution: the per-pixel cost scales with area, so for a multiview
+ * tile (displayed far smaller than a 1080p frame) we grade a downscaled copy and let CSS scale the
+ * canvas up — e.g. 1920→960 is a 4× cut in readback + loop work with no visible loss. Omit it for
+ * the full-size single-camera view, which grades at native resolution.
  */
 export function applyViewAssist(
   img: HTMLImageElement, canvas: HTMLCanvasElement, t: ViewAssistTransform, intensity: number,
+  maxWidth?: number,
 ): void {
-  const w = img.naturalWidth, h = img.naturalHeight;
-  if (!w || !h) return;
+  const iw = img.naturalWidth, ih = img.naturalHeight;
+  if (!iw || !ih) return;
+  const scale = maxWidth && iw > maxWidth ? maxWidth / iw : 1;
+  const w = Math.max(1, Math.round(iw * scale)), h = Math.max(1, Math.round(ih * scale));
   if (canvas.width !== w) canvas.width = w;
   if (canvas.height !== h) canvas.height = h;
   const ctx = canvas.getContext('2d', { willReadFrequently: true });

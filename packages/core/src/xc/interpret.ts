@@ -38,6 +38,9 @@ export function interpretInfo(map: Map): CameraSnapshot {
       value: num(map['c.1.me.gain']),
       min: num(map['c.1.me.gain.min']),
       max: num(map['c.1.me.gain.max']),
+      // XC gain is dB×10 with a fixed 0.5 dB step (= 5 units) across all bodies — a protocol unit
+      // definition, not a per-model table. Prefer an advertised increment if a body ever sends one.
+      increment: num(map['c.1.me.gain.increment']) ?? 5,
       unit: 'dB',
     };
   }
