@@ -4,10 +4,11 @@ name: Release
 # electron-updater feeds latest.yml / latest-mac.yml) to the GitHub Release for the tag.
 #
 # Trigger:
-#   - push a tag like v0.6.0  → builds that tag for BOTH platforms automatically
-#   - "Run workflow" (manual) → pass an existing tag and pick which platforms to build. Use
-#     `windows` to add a Windows installer to a release cut locally on a Mac WITHOUT rebuilding
-#     (and clobbering) the notarized macOS assets.
+#   - push a tag like v0.6.0  → builds WINDOWS ONLY (macOS is signed + notarized locally on the Mac;
+#     a CI mac build would be unsigned and clobber it). It uploads the Windows installer to the
+#     release for that tag (which the local macOS publish creates).
+#   - "Run workflow" (manual) → pass an existing tag and pick which platforms to build (both |
+#     windows | macos), and optionally a `ref` (branch) to build from.
 #
 # Signing is OPTIONAL — with no secrets the builds still succeed, just unsigned (Windows SmartScreen
 # will warn; macOS won't be notarized). Add these repo secrets for fully signed/notarized output:
@@ -74,7 +75,12 @@ jobs:
       - id: set
         name: Compute build matrix
         run: |
-          case "${{ github.event.inputs.platforms || 'both' }}" in
+          plat="${{ github.event.inputs.platforms }}"
+          # Automatic tag-push builds Windows ONLY: macOS is signed + notarized locally on the Mac
+          # (the Developer ID key isn't in CI), so a CI mac build would be unsigned and clobber it.
+          # Manual dispatch honours the `platforms` input (both | windows | macos).
+          if [ -z "$plat" ]; then plat="windows"; fi
+          case "$plat" in
             windows) m='[{"os":"windows-latest"}]' ;;
             macos)   m='[{"os":"macos-latest"}]' ;;
             *)       m='[{"os":"windows-latest"},{"os":"macos-latest"}]' ;;
