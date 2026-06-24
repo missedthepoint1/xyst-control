@@ -82,9 +82,18 @@ jobs:
       matrix: ${{ fromJSON(needs.prepare.outputs.matrix) }}
     runs-on: ${{ matrix.os }}
     steps:
+      # Sparse-checkout only the build inputs: the repo tracks docs/sony-api-reference:/ (a literal
+      # colon in the path) which is an illegal filename on Windows and aborts a full checkout. Cone
+      # mode still pulls all root-level files (package.json, pnpm-lock.yaml, tsconfigs, …); we add the
+      # workspace dirs and skip docs/ + sony-sdk/, which the build doesn't need.
       - uses: actions/checkout@v4
         with:
           ref: ${{ github.event.inputs.tag || github.ref_name }}
+          sparse-checkout: |
+            packages
+            scripts
+            config
+          sparse-checkout-cone-mode: true
       - uses: pnpm/action-setup@v4
         with:
           version: 11
