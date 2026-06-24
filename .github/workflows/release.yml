@@ -1,12 +1,13 @@
 name: Release
 
-# Builds + publishes the desktop app for Windows and macOS and attaches the installers (plus the
+# Builds + publishes the desktop app for Windows and/or macOS and attaches the installers (plus the
 # electron-updater feeds latest.yml / latest-mac.yml) to the GitHub Release for the tag.
 #
 # Trigger:
-#   - push a tag like v0.6.0  → builds that tag automatically
-#   - "Run workflow" (manual) → pass an existing tag (e.g. v0.6.0) to (re)build it, useful to add
-#     the Windows installer to a release that was cut locally on a Mac.
+#   - push a tag like v0.6.0  → builds that tag for BOTH platforms automatically
+#   - "Run workflow" (manual) → pass an existing tag and pick which platforms to build. Use
+#     `windows` to add a Windows installer to a release cut locally on a Mac WITHOUT rebuilding
+#     (and clobbering) the notarized macOS assets.
 #
 # Signing is OPTIONAL — with no secrets the builds still succeed, just unsigned (Windows SmartScreen
 # will warn; macOS won't be notarized). Add these repo secrets for fully signed/notarized output:
@@ -27,6 +28,14 @@ on:
       tag:
         description: Existing tag to build (e.g. v0.6.0)
         required: true
+      platforms:
+        description: Which platforms to build
+        type: choice
+        options:
+          - both
+          - windows
+          - macos
+        default: both
 
 permissions:
   contents: write
@@ -39,10 +48,12 @@ env:
   TAG: ${{ github.event.inputs.tag || github.ref_name }}
 
 jobs:
-  # Create the release up front (as a draft) so the parallel build jobs upload into one release
-  # instead of racing to create duplicates.
+  # Create the release up front (as a draft if it doesn't exist) so the build jobs upload into one
+  # release instead of racing to create duplicates, and compute which platforms to build.
   prepare:
     runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.set.outputs.matrix }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -54,13 +65,21 @@ jobs:
           if ! gh release view "$TAG" >/dev/null 2>&1; then
             gh release create "$TAG" --draft --title "$TAG" --generate-notes
           fi
+      - id: set
+        name: Compute build matrix
+        run: |
+          case "${{ github.event.inputs.platforms || 'both' }}" in
+            windows) m='[{"os":"windows-latest"}]' ;;
+            macos)   m='[{"os":"macos-latest"}]' ;;
+            *)       m='[{"os":"windows-latest"},{"os":"macos-latest"}]' ;;
+          esac
+          echo "matrix={\"include\":$m}" >> "$GITHUB_OUTPUT"
 
   build:
     needs: prepare
     strategy:
       fail-fast: false
-      matrix:
-        os: [windows-latest, macos-latest]
+      matrix: ${{ fromJSON(needs.prepare.outputs.matrix) }}
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
