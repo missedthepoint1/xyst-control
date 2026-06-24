@@ -28,6 +28,10 @@ on:
       tag:
         description: Existing tag to build (e.g. v0.6.0)
         required: true
+      ref:
+        description: Git ref to build FROM (default = the tag). Use a branch to build a fix not yet in the tag.
+        required: false
+        default: ''
       platforms:
         description: Which platforms to build
         type: choice
@@ -57,7 +61,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.inputs.tag || github.ref_name }}
+          ref: ${{ github.event.inputs.ref || github.event.inputs.tag || github.ref_name }}
       - name: Ensure a draft release exists for the tag
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -88,7 +92,7 @@ jobs:
       # workspace dirs and skip docs/ + sony-sdk/, which the build doesn't need.
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.event.inputs.tag || github.ref_name }}
+          ref: ${{ github.event.inputs.ref || github.event.inputs.tag || github.ref_name }}
           sparse-checkout: |
             packages
             scripts
