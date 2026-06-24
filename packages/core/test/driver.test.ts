@@ -57,15 +57,30 @@ describe('XCProtocolDriver', () => {
     expect(onState).toHaveBeenCalled();
   });
 
-  it('setFocusPoint maps normalized coords to the AF frame and pulls focus', async () => {
+  it('setFocusPoint starts subject tracking at the tapped coords (touch-to-select)', async () => {
     cam = new FakeCamera();
     const host = await cam.listen();
     drv = await makeDriver(host);
     await drv.connect();
     await drv.setFocusPoint(0.5, 0.25);
     const last = cam.controlLog.at(-1)!;
-    expect(last).toContain('c.1.focus.frame.1.x=5000'); // round(0.5*9999)
-    expect(last).toContain('c.1.focus.frame.1.y=2500'); // round(0.25*9999)
+    // A tap must be able to re-select among detected faces — that's subject tracking (mode2),
+    // not the manual AF frame (which can't switch the camera's chosen face).
+    expect(last).toContain('c.1.focus.auto.track.frame.x=5000'); // round(0.5*9999)
+    expect(last).toContain('c.1.focus.auto.track.frame.y=2500'); // round(0.25*9999)
+    expect(last).toContain('c.1.focus.auto.track.mode=mode2'); // tracks the subject at the coords
+    expect(last).toContain('c.1.focus.auto.track=on');
+  });
+
+  it('setFocusPoint falls back to the AF frame + one-shot when tracking is unsupported', async () => {
+    cam = new FakeCamera({ omitFocusTracking: true });
+    const host = await cam.listen();
+    drv = await makeDriver(host);
+    await drv.connect();
+    await drv.setFocusPoint(0.5, 0.25);
+    const last = cam.controlLog.at(-1)!;
+    expect(last).toContain('c.1.focus.frame.1.x=5000');
+    expect(last).toContain('c.1.focus.frame.1.y=2500');
     expect(last).toContain('c.1.focus.action=one_shot');
   });
 

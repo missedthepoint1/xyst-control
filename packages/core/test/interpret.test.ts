@@ -57,6 +57,14 @@ describe('interpretInfo', () => {
     expect(snap.power?.volt).toBe(14);
   });
 
+  it('surfaces subject tracking (touch-to-select) with its on/off + mode lists', () => {
+    expect(snap.controls.focusTracking?.available).toBe(true);
+    expect(snap.controls.focusTracking?.value).toBe('off');
+    expect(snap.controls.focusTracking?.list).toEqual(['off', 'on']);
+    expect(snap.controls.focusTracking?.mode).toBe('mode1');
+    expect(snap.controls.focusTracking?.modeList).toEqual(['mode1', 'mode2']);
+  });
+
   it('marks a control unavailable when the camera did not advertise it', () => {
     const snap2 = interpretInfo({ 'c.1.type': 'X', 'f.rec.status': 'rec' });
     expect(snap2.controls.iso).toBeUndefined();

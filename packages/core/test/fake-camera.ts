@@ -14,6 +14,8 @@ const BOUNDARY = 'xystbnd';
 export interface FakeCameraOptions {
   auth?: { username: string; password: string };
   failFirst?: number;
+  /** Drop the focus.auto.track.* keys to model a body that can't subject-track. */
+  omitFocusTracking?: boolean;
 }
 
 export class FakeCamera {
@@ -29,6 +31,11 @@ export class FakeCamera {
     for (const line of infoBody.split('\n')) {
       const i = line.indexOf(':=');
       if (i > 0) this.state[line.slice(0, i).trim()] = line.slice(i + 2).trim();
+    }
+    if (opts.omitFocusTracking) {
+      for (const k of Object.keys(this.state)) {
+        if (k.startsWith('c.1.focus.auto.track')) delete this.state[k];
+      }
     }
     this.server = createServer((req, res) => this.handle(req, res));
   }

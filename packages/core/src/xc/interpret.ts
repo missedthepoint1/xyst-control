@@ -156,6 +156,16 @@ export function interpretInfo(map: Map): CameraSnapshot {
   if ('c.1.focus.action.list' in map) {
     controls.focusAction = { id: 'focusAction', available: true, list: list(map['c.1.focus.action.list']) };
   }
+  // Subject tracking — the body's "touch a subject to select/track it" mechanism (re-selecting
+  // among detected faces). mode2 = "tracks the subject at the specified coordinates"; setFocusPoint
+  // drives c.1.focus.auto.track.frame.* + this. Offered only when the body advertises it.
+  if ('c.1.focus.auto.track' in map) {
+    controls.focusTracking = {
+      id: 'focusTracking', available: true,
+      value: map['c.1.focus.auto.track'], list: list(map['c.1.focus.auto.track.list']),
+      mode: map['c.1.focus.auto.track.mode'], modeList: list(map['c.1.focus.auto.track.mode.list']) as string[] | undefined,
+    };
+  }
   // Camera OSD output (info burned onto the monitor/SDI/HDMI outputs). Set via
   // configuration.cgi, not control.cgi (see driver.setControl). `off` hides it;
   // any `displevelN` value shows it. Offered only when the body advertises it.

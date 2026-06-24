@@ -151,10 +151,29 @@ export class XCProtocolDriver extends EventEmitter implements CameraDriver {
 
   async setFocusPoint(nx: number, ny: number): Promise<void> {
     const clamp = (v: number) => Math.max(0, Math.min(9999, Math.round(v * 9999)));
+    const x = String(clamp(nx)), y = String(clamp(ny));
+    const track = this.snapshot.controls.focusTracking;
+    // A tap should let the operator SELECT a subject — switch the active/golden face among several.
+    // That's subject tracking, not the manual AF frame: under face detection the camera tracks its
+    // chosen face and the AF frame can't override that choice. mode2 ("tracks the subject at the
+    // specified coordinates") grabs whatever subject is under the tap. Capability-gated (rule 8).
+    if (track?.available) {
+      const params: Record<string, string> = {
+        'c.1.focus.auto.track.frame.x': x,
+        'c.1.focus.auto.track.frame.y': y,
+        'c.1.focus.auto.track': 'on',
+      };
+      // Force mode2 when the body offers it — mode1 only "displays an AF frame" and wouldn't
+      // re-select the subject. Skip the key on bodies that don't list it (don't send unsupported).
+      if (track.modeList?.includes('mode2')) params['c.1.focus.auto.track.mode'] = 'mode2';
+      await this.control(params);
+      return;
+    }
+    // Fallback for bodies without tracking: position the manual AF frame + one-shot AF.
     await this.control({
       'c.1.focus.frame.pos': 'movable',
-      'c.1.focus.frame.1.x': String(clamp(nx)),
-      'c.1.focus.frame.1.y': String(clamp(ny)),
+      'c.1.focus.frame.1.x': x,
+      'c.1.focus.frame.1.y': y,
       'c.1.focus.action': 'one_shot',
     });
   }

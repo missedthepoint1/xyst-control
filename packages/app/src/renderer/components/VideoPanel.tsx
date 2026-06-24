@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type CSSProperties } from 'react';
 import type { VideoSource } from '@xyst/core';
-import { quadrantPosition } from '@xyst/core/video';
+import { quadrantPosition, imageAreaInTile, type TileFit } from '@xyst/core/video';
 import { applyViewAssist, type ResolvedViewAssist } from '../viewAssist.js';
 import { useCaptureStream, retryCapture } from '../captureStreams.js';
 import { useVideoInputs, resolveDeviceId } from '../videoDevices.js';
@@ -25,6 +25,7 @@ export function VideoPanel({ cameraId, source, recording, apiBase, name, osd, sh
 }) {
   const type = source?.type ?? 'none';
   const token = useApiToken();
+  const wrapRef = useRef<HTMLDivElement>(null);
   const imgRef = useRef<HTMLImageElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -35,6 +36,13 @@ export function VideoPanel({ cameraId, source, recording, apiBase, name, osd, sh
   const [mark, setMark] = useState<{ x: number; y: number } | null>(null);
   const [boxes, setBoxes] = useState<DetectBox[]>([]);
   const [guide, setGuide] = useState<Guide | null>(null);
+  // Tile + media pixel sizes feed imageAreaInTile so overlays track the DISPLAYED image, not the
+  // raw tile (which is rarely the media's aspect ratio in the popout grid). setIfChanged keeps the
+  // per-frame load callbacks from churning React once the size is known.
+  const [tileSize, setTileSize] = useState<{ w: number; h: number } | null>(null);
+  const [mediaSize, setMediaSize] = useState<{ w: number; h: number } | null>(null);
+  const setIfChanged = (set: typeof setMediaSize, w: number, h: number) =>
+    set((p) => (p && p.w === w && p.h === h ? p : { w, h }));
 
   useEffect(() => {
     if (type !== 'protocol' || !apiBase || !token) return;
@@ -45,6 +53,7 @@ export function VideoPanel({ cameraId, source, recording, apiBase, name, osd, sh
       // Only re-render on the off→on transition; setErr(false) every frame (~11/s) would otherwise
       // churn React continuously once the feed is healthy. Returning the same value bails the update.
       setErr((e) => (e ? false : e));
+      if (img.naturalWidth) setIfChanged(setMediaSize, img.naturalWidth, img.naturalHeight);
       // Re-grade in a try/catch so a readback failure (e.g. a tainted canvas) can never stop the
       // poll loop; schedule the next frame regardless. Tiles grade downscaled (see applyViewAssist).
       if (vaRef.current && canvasRef.current) {
@@ -86,44 +95,54 @@ export function VideoPanel({ cameraId, source, recording, apiBase, name, osd, sh
   const capture = useCaptureStream(liveDeviceId);
   useEffect(() => {
     const v = videoRef.current;
-    if (v) v.srcObject = capture.stream;
-    return () => { if (v) v.srcObject = null; };
+    if (!v) return;
+    v.srcObject = capture.stream;
+    // The device feed's intrinsic size (full 16:9 capture, or the 4K quad feed) drives overlay
+    // geometry — read it once the stream's metadata arrives, and on each resolution change.
+    const onMeta = () => { if (v.videoWidth) setIfChanged(setMediaSize, v.videoWidth, v.videoHeight); };
+    v.addEventListener('loadedmetadata', onMeta); v.addEventListener('resize', onMeta); onMeta();
+    return () => { v.srcObject = null; v.removeEventListener('loadedmetadata', onMeta); v.removeEventListener('resize', onMeta); };
   }, [capture.stream, type]);
+  // Reset the cached media size when the source type changes so a stale aspect ratio (e.g. the
+  // protocol JPEG's) never lingers onto a device feed before its metadata loads.
+  useEffect(() => { setMediaSize(null); }, [type]);
+  // Track the tile's rendered px so overlay geometry follows window/grid resizes live.
+  useEffect(() => {
+    const el = wrapRef.current; if (!el) return;
+    const update = () => setIfChanged(setTileSize, el.clientWidth, el.clientHeight);
+    update();
+    const ro = new ResizeObserver(update); ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
   const captureErr = isDeviceSource && capture.status === 'error';
   // 4K was requested but the link could only deliver 1080p — quad tiles are then ~960×540, so
   // flag it. Clicking retries 4K (e.g. after the operator reseats the cable into a SuperSpeed port).
   const captureDegraded = isDeviceSource && capture.status === 'live' && capture.degraded;
 
+  // Where the camera's normalized active-image space sits inside the tile, given the current fit.
+  // Overlays and the tap inverse both go through this so a tap lands exactly where a box is drawn.
+  const fit: TileFit = type === 'quad' ? 'cover-quad' : 'contain';
+  const quad = quadrantPosition(source?.quadrant ?? 0);
+  const area = imageAreaInTile({
+    fit, mediaW: mediaSize?.w ?? 0, mediaH: mediaSize?.h ?? 0,
+    tileW: tileSize?.w ?? 0, tileH: tileSize?.h ?? 0, col: quad.col, row: quad.row,
+  });
+
   const tap = (e: React.MouseEvent<HTMLDivElement>) => {
     if (onSelect) { onSelect(); return; }
-    if (type === 'quad') {
-      // The visible panel IS the quadrant (aspect-matched, no letterbox) — tap coords are
-      // already the camera's normalized 0..1.
-      const rect = e.currentTarget.getBoundingClientRect();
-      const nx = (e.clientX - rect.left) / rect.width;
-      const ny = (e.clientY - rect.top) / rect.height;
-      if (nx < 0 || ny < 0 || nx > 1 || ny > 1) return;
-      void window.xyst.setFocusPoint(cameraId, nx, ny);
-      onFocus?.(nx, ny);
-      setMark({ x: nx * 100, y: ny * 100 });
-      setTimeout(() => setMark(null), 1500);
-      return;
-    }
+    // Recompute the fit rect from live element sizes (not the lagging state) so the tap is exact.
     const rect = e.currentTarget.getBoundingClientRect();
     const media = imgRef.current ?? videoRef.current;
-    let nw = 16, nh = 9;
-    if (media instanceof HTMLImageElement && media.naturalWidth) { nw = media.naturalWidth; nh = media.naturalHeight; }
-    else if (media instanceof HTMLVideoElement && media.videoWidth) { nw = media.videoWidth; nh = media.videoHeight; }
-    const cAR = rect.width / rect.height, mAR = nw / nh;
-    let dispW: number, dispH: number, offX: number, offY: number;
-    if (mAR > cAR) { dispW = rect.width; dispH = rect.width / mAR; offX = 0; offY = (rect.height - dispH) / 2; }
-    else { dispH = rect.height; dispW = rect.height * mAR; offY = 0; offX = (rect.width - dispW) / 2; }
-    const px = e.clientX - rect.left - offX, py = e.clientY - rect.top - offY;
-    if (px < 0 || py < 0 || px > dispW || py > dispH) return; // outside the active image
-    const nx = px / dispW, ny = py / dispH;
+    let mw = 0, mh = 0;
+    if (media instanceof HTMLImageElement) { mw = media.naturalWidth; mh = media.naturalHeight; }
+    else if (media instanceof HTMLVideoElement) { mw = media.videoWidth; mh = media.videoHeight; }
+    const a = imageAreaInTile({ fit, mediaW: mw, mediaH: mh, tileW: rect.width, tileH: rect.height, col: quad.col, row: quad.row });
+    const fx = (e.clientX - rect.left) / rect.width, fy = (e.clientY - rect.top) / rect.height; // tap as tile fraction
+    const nx = (fx - a.ox) / a.sw, ny = (fy - a.oy) / a.sh; // -> normalized active-image coords
+    if (nx < 0 || ny < 0 || nx > 1 || ny > 1) return; // tapped outside the active image
     void window.xyst.setFocusPoint(cameraId, nx, ny);
     onFocus?.(nx, ny);
-    setMark({ x: ((offX + px) / rect.width) * 100, y: ((offY + py) / rect.height) * 100 });
+    setMark({ x: fx * 100, y: fy * 100 });
     setTimeout(() => setMark(null), 1500);
   };
 
@@ -131,7 +150,7 @@ export function VideoPanel({ cameraId, source, recording, apiBase, name, osd, sh
 
   return (
     <>
-    <div className={`video${recording ? ' video--rec' : ''}${onSelect ? ' video--tile' : ''}`} onClick={tap}>
+    <div ref={wrapRef} className={`video${recording ? ' video--rec' : ''}${onSelect ? ' video--tile' : ''}`} onClick={tap}>
       {type === 'protocol' && (
         <>
           {/* The img is always the frame loader; when view assist is on it's hidden (still loads)
@@ -177,19 +196,19 @@ export function VideoPanel({ cameraId, source, recording, apiBase, name, osd, sh
         <div key={i}
           className={`det det--${b.type}${b.track ? ' det--track' : ''}${b.main ? ' det--main' : ''}`}
           style={{
-            left: `${(b.x / 9999 - (b.w / 10000) / 2) * 100}%`,
-            top: `${(b.y / 9999 - (b.h / 10000) / 2) * 100}%`,
-            width: `${(b.w / 10000) * 100}%`,
-            height: `${(b.h / 10000) * 100}%`,
+            left: `${(area.ox + (b.x / 9999 - (b.w / 10000) / 2) * area.sw) * 100}%`,
+            top: `${(area.oy + (b.y / 9999 - (b.h / 10000) / 2) * area.sh) * 100}%`,
+            width: `${(b.w / 10000) * area.sw * 100}%`,
+            height: `${(b.h / 10000) * area.sh * 100}%`,
           }} />
       ))}
       {!onSelect && showOsd && guide?.status && (
         <div className={`fguide${guide.angle <= 5 ? ' fguide--ok' : ''}`}
           style={{
-            left: `${(guide.x / 9999 - (guide.w / 10000) / 2) * 100}%`,
-            top: `${(guide.y / 9999 - (guide.h / 10000) / 2) * 100}%`,
-            width: `${(guide.w / 10000) * 100}%`,
-            height: `${(guide.h / 10000) * 100}%`,
+            left: `${(area.ox + (guide.x / 9999 - (guide.w / 10000) / 2) * area.sw) * 100}%`,
+            top: `${(area.oy + (guide.y / 9999 - (guide.h / 10000) / 2) * area.sh) * 100}%`,
+            width: `${(guide.w / 10000) * area.sw * 100}%`,
+            height: `${(guide.h / 10000) * area.sh * 100}%`,
           }}>
           <span className="fguide__dir">{guide.angle <= 5 ? '● focus' : guide.dir === 'front' ? '◂ front ▸' : '▸ back ◂'}</span>
         </div>

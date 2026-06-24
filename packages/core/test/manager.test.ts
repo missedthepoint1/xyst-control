@@ -262,8 +262,8 @@ describe('CameraManager', () => {
     await mgr.connect('cam-1');
     await mgr.setFocusPoint('cam-1', 0, 1);
     const last = cam.controlLog.at(-1)!;
-    expect(last).toContain('c.1.focus.frame.1.x=0');
-    expect(last).toContain('c.1.focus.frame.1.y=9999');
+    expect(last).toContain('c.1.focus.auto.track.frame.x=0');
+    expect(last).toContain('c.1.focus.auto.track.frame.y=9999');
   });
 
   it('removeCamera disconnects, drops it, persists, and emits removed', async () => {
@@ -304,7 +304,7 @@ describe('CameraManager', () => {
     expect(p.name).toBe('Podium');
     expect(mgr.getState('cam-1')?.focusPoints).toHaveLength(1);
     await mgr.recallFocusPoint('cam-1', p.id);
-    expect(cam.controlLog.at(-1)).toContain('c.1.focus.frame.1.x=2500'); // round(0.25*9999)=2500
+    expect(cam.controlLog.at(-1)).toContain('c.1.focus.auto.track.frame.x=2500'); // round(0.25*9999)=2500
     await mgr.deleteFocusPoint('cam-1', p.id);
     expect(mgr.listFocusPoints('cam-1')).toHaveLength(0);
     const saved = JSON.parse(readFileSync(file, 'utf8'));

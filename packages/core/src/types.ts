@@ -4,7 +4,7 @@ export type ControlId =
   | 'iso' | 'gain' | 'shutter' | 'shutterMode' | 'shutterAngle'
   | 'iris' | 'wb' | 'wbKelvin' | 'nd'
   | 'focus' | 'faceDetect' | 'colorbar'
-  | 'isoAuto' | 'ndExtended' | 'wbCC' | 'awbHold' | 'wbAction' | 'afMode' | 'afSpeed' | 'afResponse' | 'afLock' | 'focusAction'
+  | 'isoAuto' | 'ndExtended' | 'wbCC' | 'awbHold' | 'wbAction' | 'afMode' | 'afSpeed' | 'afResponse' | 'afLock' | 'focusAction' | 'focusTracking'
   | 'osdOutput';
 
 /** A single discovered control: what it currently is + what values are valid. */

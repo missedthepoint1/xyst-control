@@ -67,6 +67,9 @@ export function buildControlParams(id: ControlId, value: string | number): Recor
       return { 'c.1.focus.auto.lock': v };
     case 'focusAction':
       return { 'c.1.focus.action': v };
+    case 'focusTracking':
+      // on/off toggle; tap-to-select drives the frame coords separately (driver.setFocusPoint).
+      return { 'c.1.focus.auto.track': v };
     case 'osdOutput':
       // Not a control.cgi param — set via configuration.cgi in the driver. Returning
       // {} keeps buildSettingsParams a no-op for it (presets never capture OSD output).
