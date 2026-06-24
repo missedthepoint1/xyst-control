@@ -100,10 +100,12 @@ jobs:
           sparse-checkout-cone-mode: true
       - uses: pnpm/action-setup@v4
         with:
-          version: 11
+          # Match the local pnpm that generated pnpm-lock.yaml; newer 11.9.x needs node:sqlite (Node 22+).
+          version: 11.5.2
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          # Node 22 (has node:sqlite, which pnpm 11.9+ uses) — local dev runs ≥20; build tooling is fine on 22.
+          node-version: 22
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - name: Build renderer/main bundles
