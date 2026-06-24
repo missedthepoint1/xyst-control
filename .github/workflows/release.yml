@@ -1,0 +1,99 @@
+name: Release
+
+# Builds + publishes the desktop app for Windows and macOS and attaches the installers (plus the
+# electron-updater feeds latest.yml / latest-mac.yml) to the GitHub Release for the tag.
+#
+# Trigger:
+#   - push a tag like v0.6.0  → builds that tag automatically
+#   - "Run workflow" (manual) → pass an existing tag (e.g. v0.6.0) to (re)build it, useful to add
+#     the Windows installer to a release that was cut locally on a Mac.
+#
+# Signing is OPTIONAL — with no secrets the builds still succeed, just unsigned (Windows SmartScreen
+# will warn; macOS won't be notarized). Add these repo secrets for fully signed/notarized output:
+#   WIN_CSC_LINK            base64 of your Windows code-signing .pfx
+#   WIN_CSC_KEY_PASSWORD    its password
+#   MAC_CSC_LINK            base64 of your "Developer ID Application" .p12
+#   MAC_CSC_KEY_PASSWORD    its password
+#   APPLE_ID                Apple ID email (for notarization)
+#   APPLE_APP_SPECIFIC_PASSWORD  app-specific password
+#   APPLE_TEAM_ID           e.g. 8R445A26FP
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing tag to build (e.g. v0.6.0)
+        required: true
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.event.inputs.tag || github.ref_name }}
+  cancel-in-progress: false
+
+env:
+  TAG: ${{ github.event.inputs.tag || github.ref_name }}
+
+jobs:
+  # Create the release up front (as a draft) so the parallel build jobs upload into one release
+  # instead of racing to create duplicates.
+  prepare:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.tag || github.ref_name }}
+      - name: Ensure a draft release exists for the tag
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          if ! gh release view "$TAG" >/dev/null 2>&1; then
+            gh release create "$TAG" --draft --title "$TAG" --generate-notes
+          fi
+
+  build:
+    needs: prepare
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, macos-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.tag || github.ref_name }}
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Build renderer/main bundles
+        run: pnpm --filter @xyst/app exec electron-vite build
+      - name: Build + publish installer
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Per-OS code-signing cert (empty ⇒ unsigned, build still succeeds).
+          CSC_LINK: ${{ matrix.os == 'windows-latest' && secrets.WIN_CSC_LINK || secrets.MAC_CSC_LINK }}
+          CSC_KEY_PASSWORD: ${{ matrix.os == 'windows-latest' && secrets.WIN_CSC_KEY_PASSWORD || secrets.MAC_CSC_KEY_PASSWORD }}
+          # macOS notarization (ignored on Windows; empty ⇒ notarization skipped).
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: pnpm --filter @xyst/app exec electron-builder --publish always
+
+  finalize:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Publish the release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release edit "$TAG" --draft=false --latest
