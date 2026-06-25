@@ -51,7 +51,7 @@ linux:
 # (mac + win) can find new releases. owner/repo come from the `origin` remote.
 publish:
   provider: github
-  owner: missedthepoint1
+  owner: xystla
   repo: xyst-control
   # Publish straight to a non-draft release (default is `draft`). This lets the CI workflow add
   # assets to an already-published release (e.g. a Windows installer onto a release cut locally on

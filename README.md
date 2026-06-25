@@ -88,7 +88,7 @@ camera records.
 ## Download
 
 Grab the latest signed & notarized macOS build from the
-**[Releases page](https://github.com/missedthepoint1/xyst-control/releases/latest)** —
+**[Releases page](https://github.com/xystla/xyst-control/releases/latest)** —
 download the `.dmg`, drag the app to Applications, done. No Gatekeeper prompt.
 
 ## Auto-update

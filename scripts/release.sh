@@ -22,7 +22,7 @@ TAG="v$VERSION"
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 
-OWNER_REPO="missedthepoint1/xyst-control"
+OWNER_REPO="xystla/xyst-control"
 RELEASE_BRANCH="phase-1"
 PRODUCT="XYST CONTROL"   # space-named build output; release assets use the hyphenated form
 
