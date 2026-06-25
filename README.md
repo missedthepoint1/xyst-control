@@ -11,7 +11,7 @@ for **Canon cinema bodies** on a wired network, in one dark, touch-friendly desk
 
 ![Platform](https://img.shields.io/badge/platform-macOS%20(Apple%20Silicon)-000000?logo=apple&logoColor=white)
 ![Built with](https://img.shields.io/badge/Electron%20%2B%20TypeScript-2b2b2b?logo=electron&logoColor=9FEAF9)
-![Release](https://img.shields.io/badge/release-v0.3.0-8b7bff)
+![Release](https://img.shields.io/badge/release-v0.7.0-3dd6c4)
 ![Signed](https://img.shields.io/badge/macOS-signed%20%26%20notarized-34e0a1)
 
 <br>
@@ -41,13 +41,13 @@ for **Canon cinema bodies** on a wired network, in one dark, touch-friendly desk
 |---|---|
 | 🎬 **Record** | Per-camera, plus **REC ALL / STOP ALL** across every connected body |
 | 🎛 **Full manual control** | ISO / gain, shutter (speed *and* angle), iris, white balance + Kelvin, ND — the complete exposure set |
-| 🧠 **Capability discovery** | The app asks each camera what it supports and shows only that — no hard-coded model tables, so new bodies just work |
-| 💾 **Presets** | Save and recall named exposure snapshots per camera |
+| 🧠 **Capability discovery** | The app asks each camera what it supports and shows only that — no hard-coded model tables, so new bodies just work (incl. a generic **Canon XC** option for any XC body) |
+| 💾 **Presets** | Save and recall named exposure snapshots per camera (created from the panel's gear settings) |
 | 📺 **Live view + view-assist LUT** | In-app preview with a C-Log → Rec.709 grade (built-in looks or your own `.cube`) — preview-only, never touches the recording |
 | 🔲 **Multiview popout** | Resizable 16:9 window, **1–8 camera** grids, tally borders, and **touch focus on every feed** |
 | ⏱ **Timecode** | Running timecode on the live feed for Cinema EOS bodies *(new in v0.3.0)* |
 | 🎚 **Stream Deck** | Full control from **Bitfocus Companion** — native module with actions, feedbacks, variables, and ready-made presets |
-| 🎨 **Five themes** | Aurora · Broadcast · Cinema · Mono · Tactical |
+| 🎨 **Refined dark UI** | A clean instrument look (**Studio**, default) + a dark-modern alt (**Aurora**) — grounded controls, high-contrast, touch-friendly |
 
 ---
 
