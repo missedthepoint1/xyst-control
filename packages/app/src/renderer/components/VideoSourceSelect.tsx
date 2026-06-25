@@ -1,5 +1,5 @@
 import type { VideoSource } from '@xyst/core';
-import { useVideoInputs, resolveDeviceId } from '../videoDevices.js';
+import { useVideoInputs, resolveDeviceId, describeCaptureDevice } from '../videoDevices.js';
 
 const QUADS: { q: 0 | 1 | 2 | 3; label: string }[] = [
   { q: 0, label: '◤ Top-left' },
@@ -45,14 +45,17 @@ export function VideoSourceSelect({ current, onChange, name }: {
     }}>
       <option value="none">No video</option>
       <option value="protocol">{name ? `${name} — Live view` : 'Live view'}</option>
-      {devices.map((d, i) => (
-        <optgroup key={d.deviceId} label={d.label || `Capture device ${i + 1}`}>
-          <option key="full" value={`capture:${d.deviceId}`}>Full frame (SDI/HDMI · high-res)</option>
-          {QUADS.map(({ q, label }) => (
-            <option key={q} value={`quad:${d.deviceId}:${q}`}>{label} (quad)</option>
-          ))}
-        </optgroup>
-      ))}
+      {devices.map((d, i) => {
+        const dev = describeCaptureDevice(d.label, i);
+        return (
+          <optgroup key={d.deviceId} label={dev.name}>
+            <option key="full" value={`capture:${d.deviceId}`}>Full frame (SDI/HDMI · high-res)</option>
+            {dev.quad && QUADS.map(({ q, label }) => (
+              <option key={q} value={`quad:${d.deviceId}:${q}`}>{label} (quad)</option>
+            ))}
+          </optgroup>
+        );
+      })}
     </select>
   );
 }

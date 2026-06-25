@@ -1,184 +1,86 @@
+/* ============================================================================
+   XYST CONTROL — theme tokens
+   Base (:root) is "Studio": a flat instrument look — single cyan-teal accent,
+   matte graphite surfaces, no decorative glow/gradient/glass. This is the default.
+   [data-theme="aurora"] is the one alternate: a refined dark-modern look that
+   ADDS a single violet accent + subtle glass/wash back on top of the flat base.
+   Functional colors (REC red, focus amber/green, tally) are meaning-bearing and
+   are NOT theme decoration.
+   ============================================================================ */
+
 :root {
-  /* Aurora palette */
+  /* surfaces */
+  --bg: #0b0d10;
+  --text: #e8ebf0;
+  --muted: #8b93a3;
+  --faint: #59616f;
+
+  --glass: #14171c;       /* flat panel/control surface */
+  --glass-2: #1a1e24;     /* slightly raised surface (inputs, steppers) */
+  --border: rgba(255, 255, 255, 0.08);
+  --border-strong: rgba(255, 255, 255, 0.17);
+
+  /* one disciplined accent — used only for active / focus states, never as a fill gradient */
+  --accent: #3dd6c4;
+  --accent-2: #3dd6c4;
+  --accent-grad: #3dd6c4;                  /* flat: not a gradient */
+  --accent-glow: rgba(61, 214, 196, 0.25); /* modest, functional: focus ring + slider thumb only */
+  --on-accent: #04201d;                    /* text/icon color on top of the accent */
+
+  --ok: #34d39a;
+  --warn: #ffce5a;
+
+  /* REC — the one place strong color + glow is earned (and only while recording) */
+  --rec: #ff3b3b;
+  --rec-2: #ff3b3b;
+  --rec-grad: #ff3b3b;
+  --rec-glow: rgba(255, 59, 59, 0.45);
+
+  --radius: 8px;          /* panels, video, cards */
+  --radius-sm: 6px;       /* buttons, inputs, segments */
+  --shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  --shadow-sm: 0 4px 14px rgba(0, 0, 0, 0.42);
+}
+
+/* ---- Aurora: refined dark-modern — single violet accent (no rainbow), subtle glass ---- */
+:root[data-theme="aurora"] {
   --bg: #08080e;
   --text: #eef1f8;
   --muted: #97a0b8;
   --faint: #6b7390;
 
-  /* glass surfaces */
-  --glass: linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.018));
-  --glass-2: linear-gradient(180deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0.025));
+  --glass: linear-gradient(180deg, rgba(255, 255, 255, 0.045), rgba(255, 255, 255, 0.016));
+  --glass-2: linear-gradient(180deg, rgba(255, 255, 255, 0.065), rgba(255, 255, 255, 0.022));
   --border: rgba(255, 255, 255, 0.09);
   --border-strong: rgba(255, 255, 255, 0.16);
 
-  /* accent (violet -> cyan) */
   --accent: #8b7bff;
-  --accent-2: #36d6e7;
-  --accent-grad: linear-gradient(120deg, #8b7bff 0%, #c46bff 45%, #36d6e7 100%);
-  --accent-glow: rgba(139, 123, 255, 0.5);
+  --accent-2: #8b7bff;
+  --accent-grad: #8b7bff;                    /* single violet — no rainbow gradient */
+  --accent-glow: rgba(139, 123, 255, 0.28);
+  --on-accent: #0b0a16;
 
-  --ok: #34e0a1;
-  --warn: #ffce5a;
-  --rec: #ff385f;
-  --rec-2: #ff6a3d;
-  --rec-grad: linear-gradient(135deg, #ff385f, #ff6a3d);
-  --rec-glow: rgba(255, 56, 95, 0.55);
-
-  --radius: 16px;
-  --radius-sm: 11px;
-  --shadow: 0 16px 48px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  --radius: 10px;
+  --radius-sm: 8px;
+  --shadow: 0 14px 40px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.05);
   --shadow-sm: 0 6px 20px rgba(0, 0, 0, 0.4);
 }
 
-/* ---- Broadcast: matte graphite instrument, single steel accent, no glass/glow/aurora ---- */
-:root[data-theme="broadcast"] {
-  --bg: #0c0e11;
-  --text: #e7eaf0;
-  --muted: #868f9e;
-  --faint: #5a6271;
-  --glass: #15181d;
-  --glass-2: #1b1f25;
-  --border: rgba(255, 255, 255, 0.08);
-  --border-strong: rgba(255, 255, 255, 0.18);
-  --accent: #b8c6dc;
-  --accent-2: #b8c6dc;
-  --accent-grad: #b8c6dc;          /* flat, no gradient */
-  --accent-glow: transparent;       /* no glow */
-  --rec: #ff2e2e; --rec-2: #ff2e2e; --rec-grad: #ff2e2e; --rec-glow: rgba(255, 46, 46, 0.4);
-  --radius: 3px; --radius-sm: 3px;  /* squared instrument corners */
-  --shadow: 0 10px 28px rgba(0, 0, 0, 0.55);
-  --shadow-sm: 0 4px 14px rgba(0, 0, 0, 0.45);
+/* Aurora adds a faint single-hue top wash + glass back onto the flat base. */
+:root[data-theme="aurora"] body {
+  background-image: radial-gradient(1100px 700px at 50% -16%, rgba(139, 123, 255, 0.10), transparent 62%);
 }
-:root[data-theme="broadcast"] body { background-image: none; }
-/* Square the chrome that hardcodes its own radius (the token change above misses these). */
-:root[data-theme="broadcast"] .video,
-:root[data-theme="broadcast"] .select,
-:root[data-theme="broadcast"] .input,
-:root[data-theme="broadcast"] .seg,
-:root[data-theme="broadcast"] .seg__btn,
-:root[data-theme="broadcast"] .osd-btn,
-:root[data-theme="broadcast"] .rec-btn,
-:root[data-theme="broadcast"] .stepper__btn,
-:root[data-theme="broadcast"] .act,
-:root[data-theme="broadcast"] .panel__remove,
-:root[data-theme="broadcast"] .drag-handle,
-:root[data-theme="broadcast"] .add__title .plus,
-:root[data-theme="broadcast"] .modal__card,
-:root[data-theme="broadcast"] .modal__close,
-:root[data-theme="broadcast"] .feedctl__seg,
-:root[data-theme="broadcast"] .feedctl__seg button,
-:root[data-theme="broadcast"] .feedsel,
-:root[data-theme="broadcast"] .boxcount,
-:root[data-theme="broadcast"] .popout-gear,
-:root[data-theme="broadcast"] .popout-settings,
-:root[data-theme="broadcast"] .theme-select,
-:root[data-theme="broadcast"] .cam-settings,
-:root[data-theme="broadcast"] .video__name,
-:root[data-theme="broadcast"] .video__tally,
-:root[data-theme="broadcast"] .mvtile__label,
-:root[data-theme="broadcast"] .osd__bar,
-:root[data-theme="broadcast"] .osd__rec,
-:root[data-theme="broadcast"] .btn { border-radius: 3px; }
-:root[data-theme="broadcast"] .card { backdrop-filter: none; -webkit-backdrop-filter: none; }
-
-/* ---- Cinema: warm near-black, single amber accent, faint top wash, no glass ---- */
-:root[data-theme="cinema"] {
-  --bg: #0e0c0b;
-  --text: #efe9e2;
-  --muted: #9a9087;
-  --faint: #6b6359;
-  --glass: #181513;
-  --glass-2: #1f1b18;
-  --border: rgba(255, 240, 225, 0.09);
-  --border-strong: rgba(255, 240, 225, 0.18);
-  --accent: #e9a85a;
-  --accent-2: #e9a85a;
-  --accent-grad: #e9a85a;          /* flat amber */
-  --accent-glow: transparent;
-  --rec: #ff3b3b; --rec-2: #ff3b3b; --rec-grad: #ff3b3b; --rec-glow: rgba(255, 59, 59, 0.38);
-  --radius: 10px; --radius-sm: 8px;
-  --shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
-  --shadow-sm: 0 5px 16px rgba(0, 0, 0, 0.42);
+:root[data-theme="aurora"] .app__header {
+  background: linear-gradient(180deg, rgba(20, 18, 34, 0.6), rgba(10, 9, 18, 0.4));
+  backdrop-filter: blur(18px) saturate(140%);
+  -webkit-backdrop-filter: blur(18px) saturate(140%);
 }
-:root[data-theme="cinema"] body {
-  background-image: radial-gradient(1200px 820px at 50% -12%, rgba(233, 168, 90, 0.06), transparent 60%);
+:root[data-theme="aurora"] .card {
+  backdrop-filter: blur(14px) saturate(130%);
+  -webkit-backdrop-filter: blur(14px) saturate(130%);
 }
 
-/* ---- Mono: near-monochrome, monospace UI, one cool accent, ultra-flat ---- */
-:root[data-theme="mono"] {
-  --bg: #0a0a0b;
-  --text: #e6e6e8;
-  --muted: #8a8a90;
-  --faint: #5c5c63;
-  --glass: #131316;
-  --glass-2: #19191c;
-  --border: rgba(255, 255, 255, 0.10);
-  --border-strong: rgba(255, 255, 255, 0.2);
-  --accent: #cfd3da;
-  --accent-2: #cfd3da;
-  --accent-grad: #cfd3da;
-  --accent-glow: transparent;
-  --rec: #ff3340; --rec-2: #ff3340; --rec-grad: #ff3340; --rec-glow: rgba(255, 51, 64, 0.35);
-  --radius: 6px; --radius-sm: 4px;
-  --shadow: 0 8px 24px rgba(0, 0, 0, 0.6);
-  --shadow-sm: 0 3px 12px rgba(0, 0, 0, 0.5);
-}
-:root[data-theme="mono"] body { background-image: none; }
-
-/* ---- Tactical: terminal black, green-tinted chrome, phosphor-amber accent, monospace ---- */
-:root[data-theme="tactical"] {
-  --bg: #07090a;
-  --text: #cad7d0;
-  --muted: #6f8079;
-  --faint: #4a574f;
-  --glass: #0f1311;
-  --glass-2: #141a17;
-  --border: rgba(120, 200, 150, 0.14);
-  --border-strong: rgba(120, 200, 150, 0.28);
-  --accent: #ffb000;
-  --accent-2: #ffb000;
-  --accent-grad: #ffb000;
-  --accent-glow: transparent;
-  --ok: #46d369;
-  --rec: #ff3b30; --rec-2: #ff3b30; --rec-grad: #ff3b30; --rec-glow: rgba(255, 59, 48, 0.4);
-  --radius: 4px; --radius-sm: 3px;
-  --shadow: 0 8px 22px rgba(0, 0, 0, 0.62);
-  --shadow-sm: 0 3px 12px rgba(0, 0, 0, 0.5);
-}
-:root[data-theme="tactical"] body { background-image: none; }
-
-/* ---- Shared overrides for every flat (non-Aurora) theme: kill glass/glow/brand gradient ---- */
-:root[data-theme]:not([data-theme="aurora"]) .app__header {
-  background: var(--glass); backdrop-filter: none; -webkit-backdrop-filter: none;
-}
-:root[data-theme]:not([data-theme="aurora"]) .card { backdrop-filter: none; -webkit-backdrop-filter: none; }
-:root[data-theme]:not([data-theme="aurora"]) .brand__mark {
-  background: none; color: var(--accent); -webkit-text-fill-color: var(--accent);
-}
-:root[data-theme]:not([data-theme="aurora"]) .btn--accent { box-shadow: var(--shadow-sm); }
-:root[data-theme]:not([data-theme="aurora"]) .btn--accent:hover { box-shadow: var(--shadow); }
-
-/* ---- Typographic identity per theme ---- */
-/* Camera-HUD data in monospace (the OSD overlay) for the instrument themes. */
-:root[data-theme="broadcast"] .osd, :root[data-theme="mono"] .osd, :root[data-theme="tactical"] .osd {
-  font-family: ui-monospace, "SF Mono", Menlo, monospace; letter-spacing: 0;
-}
-/* Mono / Tactical: the whole UI in monospace. */
-:root[data-theme="mono"] body, :root[data-theme="tactical"] body {
-  font-family: ui-monospace, "SF Mono", Menlo, monospace;
-}
-/* (The "XYST CONTROL" wordmark font is fixed in app.css — consistent across all themes.) */
-/* Panel titles geometric for Cinema. */
-:root[data-theme="cinema"] .panel__title { font-family: "Futura", "Avenir Next", system-ui; letter-spacing: 0.5px; }
-
-/* ---- Icon-style identity: round status/active dots become square "LED" pips on instrument themes ---- */
-:root[data-theme="broadcast"] .osd-btn .ic, :root[data-theme="mono"] .osd-btn .ic, :root[data-theme="tactical"] .osd-btn .ic,
-:root[data-theme="broadcast"] .status .dot, :root[data-theme="mono"] .status .dot, :root[data-theme="tactical"] .status .dot,
-:root[data-theme="broadcast"] .btn .dot, :root[data-theme="mono"] .btn .dot, :root[data-theme="tactical"] .btn .dot,
-:root[data-theme="broadcast"] .rec-btn .ic, :root[data-theme="mono"] .rec-btn .ic, :root[data-theme="tactical"] .rec-btn .ic,
-:root[data-theme="broadcast"] .osd__dot, :root[data-theme="mono"] .osd__dot, :root[data-theme="tactical"] .osd__dot {
-  border-radius: 1px;
-}
+/* ---------------------------------------------------------------------------- */
 
 * { box-sizing: border-box; }
 
@@ -191,18 +93,15 @@ body {
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
   background-color: var(--bg);
-  /* Aurora glow */
-  background-image:
-    radial-gradient(1000px 680px at 8% -12%, rgba(139, 123, 255, 0.28), transparent 60%),
-    radial-gradient(880px 560px at 102% -6%, rgba(244, 86, 196, 0.20), transparent 55%),
-    radial-gradient(820px 640px at 50% 118%, rgba(54, 214, 231, 0.18), transparent 60%);
+  /* Studio: flat graphite with one barely-there top vignette — no color wash. */
+  background-image: radial-gradient(1400px 700px at 50% -20%, rgba(255, 255, 255, 0.025), transparent 60%);
   background-attachment: fixed;
 }
 
 button { font: inherit; color: inherit; cursor: pointer; border: none; background: none; }
 input, select, button { font-family: inherit; }
 
-::selection { background: rgba(139, 123, 255, 0.35); }
+::selection { background: color-mix(in srgb, var(--accent) 32%, transparent); }
 
 /* refined scrollbars */
 ::-webkit-scrollbar { width: 11px; height: 11px; }
@@ -216,8 +115,8 @@ input, select, button { font-family: inherit; }
 ::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.22); background-clip: padding-box; }
 
 @keyframes recPulse {
-  0%, 100% { box-shadow: 0 0 0 1px rgba(255, 56, 95, 0.55), 0 0 22px var(--rec-glow); }
-  50% { box-shadow: 0 0 0 1px rgba(255, 56, 95, 0.9), 0 0 36px var(--rec-glow); }
+  0%, 100% { box-shadow: 0 0 0 1px rgba(255, 59, 59, 0.55), 0 0 20px var(--rec-glow); }
+  50% { box-shadow: 0 0 0 1px rgba(255, 59, 59, 0.9), 0 0 34px var(--rec-glow); }
 }
 
 @keyframes dotPulse {

@@ -7,9 +7,8 @@
 .app__header {
   display: flex; align-items: center; justify-content: space-between;
   padding: 16px 24px;
-  background: linear-gradient(180deg, rgba(18, 16, 32, 0.72), rgba(10, 9, 18, 0.45));
-  backdrop-filter: blur(18px) saturate(150%);
-  -webkit-backdrop-filter: blur(18px) saturate(150%);
+  /* Flat chrome bar by default; Aurora re-adds a tinted glass + blur in theme.css. */
+  background: var(--glass);
   border-bottom: 1px solid var(--border);
   position: sticky; top: 0; z-index: 10;
 }
@@ -18,8 +17,7 @@
   /* One consistent wordmark font across every theme (themes only recolor it). */
   font-family: "Futura", "Avenir Next", system-ui;
   font-weight: 800; letter-spacing: 3px; font-size: 19px;
-  background: linear-gradient(110deg, #d7ccff 0%, #ff9bd8 42%, #74ecff 100%);
-  -webkit-background-clip: text; background-clip: text; color: transparent;
+  color: var(--accent);
 }
 .brand__sub { font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--faint); }
 
@@ -39,10 +37,13 @@
    page scroll. Pairs with .app__body--fit (kills the body scroll). */
 .app__grid--quad {
   height: 100%; grid-template-columns: repeat(2, minmax(0, 1fr)); grid-auto-rows: 1fr;
-  align-content: stretch; align-items: stretch;
+  align-content: stretch; align-items: start;
 }
 .app__grid--quad > * { min-height: 0; }
-.app__grid--quad > .panel { overflow-y: auto; }
+/* Size each panel to its content (top-aligned) but never taller than its row — so a sparse/offline
+   panel hugs its content instead of ballooning, while a control-heavy panel caps at the cell height
+   and scrolls internally (the 4-up "fit on screen" behaviour). */
+.app__grid--quad > .panel { overflow-y: auto; max-height: 100%; }
 .app__body--fit { overflow: hidden; }
 
 .toolbar { display: flex; gap: 10px; }
@@ -60,13 +61,13 @@
 .btn:disabled { opacity: 0.5; cursor: default; transform: none; }
 .btn--ghost { background: transparent; }
 .btn--accent {
-  background: var(--accent-grad); border: none; color: #0b0a16; font-weight: 700;
-  box-shadow: 0 8px 24px rgba(139, 123, 255, 0.35);
+  background: var(--accent-grad); border: none; color: var(--on-accent); font-weight: 700;
+  box-shadow: var(--shadow-sm);
 }
-.btn--accent:hover { box-shadow: 0 10px 30px rgba(139, 123, 255, 0.5); }
+.btn--accent:hover { box-shadow: var(--shadow); }
 .btn--rec {
-  background: linear-gradient(180deg, rgba(255, 56, 95, 0.22), rgba(255, 56, 95, 0.08));
-  border-color: rgba(255, 56, 95, 0.4);
+  background: color-mix(in srgb, var(--rec) 14%, transparent);
+  border-color: color-mix(in srgb, var(--rec) 40%, transparent);
 }
 .btn--rec .dot { background: var(--rec); box-shadow: 0 0 10px var(--rec-glow); }
 .btn--stop { background: var(--rec); border-color: var(--rec); color: #fff; box-shadow: 0 0 18px var(--rec-glow); }
@@ -81,8 +82,7 @@
   border: 1px solid var(--border);
   border-radius: var(--radius);
   box-shadow: var(--shadow);
-  backdrop-filter: blur(16px) saturate(140%);
-  -webkit-backdrop-filter: blur(16px) saturate(140%);
+  /* Flat by default; Aurora re-adds backdrop blur in theme.css. */
 }
 .panel {
   padding: 18px; animation: floatIn .35s ease both; position: relative; overflow: hidden;
@@ -93,9 +93,19 @@
     linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.25), transparent) top left / 100% 1px no-repeat,
     var(--glass);
 }
-.panel.is-rec { border-color: rgba(255, 56, 95, 0.6); animation: floatIn .35s ease both, recPulse 1.8s ease-in-out infinite; }
+.panel.is-rec { border-color: color-mix(in srgb, var(--rec) 60%, transparent); animation: floatIn .35s ease both, recPulse 1.8s ease-in-out infinite; }
 
-.panel__head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 16px; }
+/* Control bar: a recessed tray that grounds the name + action buttons so they don't float on the
+   card. Buttons (lighter glass) sit raised on the darker inset. */
+.panel__head {
+  display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 12px;
+  padding: 9px 11px; background: rgba(0, 0, 0, 0.22);
+  border: 1px solid var(--border); border-radius: var(--radius);
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.22);
+}
+/* When the control bar is the last thing in the card (offline — no controls/presets follow), drop its
+   trailing margin so the space below it is just the card padding, not padding + a leftover margin. */
+.panel__head:has(+ .controls:empty:last-child) { margin-bottom: 0; }
 .panel__title { font-weight: 700; font-size: 16px; letter-spacing: 0.2px; }
 
 .status { display: inline-flex; align-items: center; gap: 7px; margin-top: 5px; font-size: 12px; color: var(--muted); }
@@ -109,8 +119,8 @@
 
 /* ---------- REC button ---------- */
 .rec-btn {
-  display: inline-flex; align-items: center; gap: 10px; padding: 10px 18px;
-  border-radius: 12px; font-weight: 700; letter-spacing: 0.5px; font-size: 13px;
+  display: inline-flex; align-items: center; gap: 10px; height: 36px; padding: 0 16px;
+  border-radius: var(--radius-sm); font-weight: 700; letter-spacing: 0.5px; font-size: 13px;
   color: var(--text); background: var(--glass-2); border: 1px solid var(--border);
   transition: transform .12s ease, box-shadow .2s, background .2s;
 }
@@ -121,6 +131,13 @@
 
 /* ---------- controls ---------- */
 .controls { display: grid; gap: 12px; }
+/* When a camera advertises no controls (e.g. offline), drop the empty grid so it doesn't
+   add phantom space below the header — and let the section that follows sit a clean 12px
+   below, matching the gap above, so the name + buttons row stays evenly framed. */
+.controls:empty { display: none; }
+.controls:empty + .presets,
+.controls:empty + .switches,
+.controls:empty + .advanced { margin-top: 0; }
 .ctl { display: grid; align-items: center; gap: 12px; grid-template-columns: 78px 1fr; }
 .ctl--slider { grid-template-columns: 78px 1fr 58px; }
 .ctl__label { color: var(--muted); font-size: 12px; font-weight: 600; letter-spacing: 0.4px; text-transform: uppercase; }
@@ -128,7 +145,7 @@
 
 .select, .input {
   width: 100%; color: var(--text); background: var(--glass-2);
-  border: 1px solid var(--border); border-radius: 10px; padding: 9px 12px;
+  border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 9px 12px;
   transition: border-color .15s, box-shadow .15s;
 }
 .select {
@@ -139,7 +156,7 @@
   background-position: right 13px center;
 }
 .select:focus, .input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-glow); }
-.select option { background: #14121f; color: var(--text); }
+.select option { background: #15181d; color: var(--text); }
 
 .range { -webkit-appearance: none; appearance: none; width: 100%; height: 7px; border-radius: 999px; cursor: pointer;
   background: linear-gradient(90deg, var(--accent) 0%, var(--accent-2) var(--pct, 50%), rgba(255, 255, 255, 0.09) var(--pct, 50%)); }
@@ -167,8 +184,8 @@
 .add { padding: 18px; display: grid; gap: 12px; align-content: start;
   border-style: dashed; border-color: var(--border-strong); animation: floatIn .35s ease both; }
 .add__title { font-weight: 700; color: var(--muted); letter-spacing: 0.5px; display: flex; align-items: center; gap: 8px; }
-.add__title .plus { width: 22px; height: 22px; border-radius: 7px; display: grid; place-items: center;
-  background: var(--accent-grad); color: #0b0a16; font-weight: 800; }
+.add__title .plus { width: 22px; height: 22px; border-radius: var(--radius-sm); display: grid; place-items: center;
+  background: var(--accent-grad); color: var(--on-accent); font-weight: 800; }
 .add__hint { color: var(--faint); font-size: 11.5px; margin-top: 2px; }
 .err { color: var(--rec); font-size: 12.5px; }
 
@@ -182,7 +199,7 @@
 .modal__card { position: relative; width: min(420px, 92vw); }
 .modal__card .add { border-style: solid; }
 .modal__close { position: absolute; top: 14px; right: 14px; z-index: 1; width: 26px; height: 26px;
-  border-radius: 7px; display: grid; place-items: center; color: var(--muted); font-size: 18px; line-height: 1;
+  border-radius: var(--radius-sm); display: grid; place-items: center; color: var(--muted); font-size: 18px; line-height: 1;
   background: var(--glass); border: 1px solid var(--border); transition: color .15s, border-color .15s; }
 .modal__close:hover { color: var(--text); border-color: var(--border-strong); }
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
@@ -207,17 +224,17 @@
 
 /* segmented control */
 .seg { display: inline-flex; background: rgba(255, 255, 255, 0.04); border: 1px solid var(--border);
-  border-radius: 10px; padding: 3px; gap: 3px; }
-.seg__btn { flex: 1; padding: 6px 12px; border-radius: 7px; font-size: 12.5px; font-weight: 600;
+  border-radius: var(--radius-sm); padding: 3px; gap: 3px; }
+.seg__btn { flex: 1; padding: 6px 12px; border-radius: 4px; font-size: 12.5px; font-weight: 600;
   color: var(--muted); transition: color .15s, background .15s; white-space: nowrap; }
 .seg__btn:hover { color: var(--text); }
-.seg__btn.is-active { color: #0b0a16; background: var(--accent-grad); box-shadow: 0 4px 14px var(--accent-glow); }
+.seg__btn.is-active { color: var(--on-accent); background: var(--accent-grad); }
 .seg--icons .seg__btn { padding: 7px 10px; display: grid; place-items: center; }
 .seg--icons svg { width: 15px; height: 15px; display: block; fill: currentColor; }
 
 /* stepper */
 .stepper { display: flex; align-items: center; gap: 8px; }
-.stepper__btn { width: 34px; height: 34px; border-radius: 9px; font-size: 18px; line-height: 1;
+.stepper__btn { width: 34px; height: 34px; border-radius: var(--radius-sm); font-size: 18px; line-height: 1;
   color: var(--text); background: var(--glass-2); border: 1px solid var(--border); transition: border-color .15s, transform .1s; }
 .stepper__btn:hover:not(:disabled) { border-color: var(--accent); }
 .stepper__btn:active:not(:disabled) { transform: scale(0.94); }
@@ -229,9 +246,9 @@
 .switches { margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--border); display: grid; gap: 12px; }
 
 /* remove camera button */
-.panel__head-right { display: flex; flex-direction: column; align-items: flex-end; gap: 10px; flex-shrink: 0; }
-.panel__remove { width: 24px; height: 24px; border-radius: 7px;
-  display: grid; place-items: center; font-size: 16px; line-height: 1; color: var(--faint);
+.panel__head-right { display: flex; flex-direction: row; align-items: center; gap: 10px; flex-shrink: 0; }
+.panel__remove { width: 26px; height: 26px; border-radius: var(--radius-sm); margin-left: 2px;
+  display: grid; place-items: center; font-size: 17px; line-height: 1; color: var(--faint);
   background: transparent; transition: color .15s, background .15s; }
 
 /* meta status line */
@@ -240,11 +257,11 @@
 
 /* action buttons (focus / wb set) */
 .actions { display: flex; gap: 8px; }
-.act { flex: 1; padding: 8px 10px; border-radius: 9px; font-size: 12.5px; font-weight: 600;
+.act { flex: 1; padding: 8px 10px; border-radius: var(--radius-sm); font-size: 12.5px; font-weight: 600;
   color: var(--text); background: var(--glass-2); border: 1px solid var(--border);
   transition: border-color .15s, background .15s, transform .1s; white-space: nowrap; }
 .act:hover { border-color: var(--accent); }
-.act:active { transform: scale(0.96); background: rgba(139, 123, 255, 0.14); }
+.act:active { transform: scale(0.96); background: color-mix(in srgb, var(--accent) 14%, transparent); }
 
 /* advanced disclosure */
 .advanced { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--border); }
@@ -252,12 +269,12 @@
   text-transform: uppercase; padding: 2px 0; }
 .advanced__toggle:hover { color: var(--text); }
 .advanced__body { display: grid; gap: 12px; margin-top: 12px; }
-.panel__remove:hover { color: var(--rec); background: rgba(255, 56, 95, 0.12); }
+.panel__remove:hover { color: var(--rec); background: color-mix(in srgb, var(--rec) 12%, transparent); }
 
 /* live view */
 .video__src { margin-bottom: 12px; }
-.video { position: relative; aspect-ratio: 16 / 9; background: #000; border-radius: 12px;
-  overflow: hidden; margin-bottom: 16px; border: 1px solid var(--border); }
+.video { position: relative; aspect-ratio: 16 / 9; background: #000; border-radius: var(--radius);
+  overflow: hidden; margin-bottom: 12px; border: 1px solid var(--border); }
 .video--rec { border-color: var(--rec); box-shadow: inset 0 0 0 1px var(--rec), 0 0 22px var(--rec-glow); }
 .video__img { width: 100%; height: 100%; object-fit: contain; display: block; background: #000; }
 .video__img--quad { position: absolute; width: 200%; height: 200%; max-width: none; object-fit: cover; }
@@ -267,7 +284,7 @@
 .video__ph-icon { width: 34px; height: 34px; color: var(--faint); opacity: 0.65; }
 .video__ph-text { font-size: 13px; letter-spacing: 0.3px; color: var(--muted); }
 .video__tally { position: absolute; top: 10px; left: 10px; display: inline-flex; align-items: center; gap: 6px;
-  background: var(--rec); color: #fff; font-size: 11px; font-weight: 700; padding: 4px 9px; border-radius: 7px;
+  background: var(--rec); color: #fff; font-size: 11px; font-weight: 700; padding: 4px 9px; border-radius: var(--radius-sm);
   letter-spacing: 0.6px; box-shadow: 0 0 14px var(--rec-glow); }
 .video__tally .video__dot { width: 8px; height: 8px; border-radius: 50%; background: #fff; }
 /* When the camera selector (.feedsel) is shown top-left on a popout tile, drop the REC indicator
@@ -297,7 +314,7 @@
 .multiview__empty { color: var(--muted); padding: 40px; text-align: center; }
 
 /* ---------- relabel / reorder / labels toggle ---------- */
-.drag-handle { display: grid; place-items: center; width: 24px; height: 24px; border-radius: 7px;
+.drag-handle { display: grid; place-items: center; width: 24px; height: 24px; border-radius: var(--radius-sm);
   color: var(--faint); background: transparent; border: 1px solid transparent; cursor: grab; flex-shrink: 0; }
 .drag-handle:hover { color: var(--muted); background: var(--glass); border-color: var(--border); }
 .drag-handle:active { cursor: grabbing; }
@@ -307,7 +324,7 @@
 .panel.is-drop, .mvtile.is-drop { outline: 2px dashed var(--accent); outline-offset: 3px; border-radius: var(--radius); }
 .panel__title { cursor: text; }
 .panel__title-edit { font-weight: 700; font-size: 16px; letter-spacing: 0.2px; color: var(--text);
-  background: var(--glass); border: 1px solid var(--accent); border-radius: 7px; padding: 2px 8px; width: 100%; max-width: 240px; outline: none; }
+  background: var(--glass); border: 1px solid var(--accent); border-radius: var(--radius-sm); padding: 2px 8px; width: 100%; max-width: 240px; outline: none; }
 
 .mvtile { position: relative; }
 .mvtile__grip { position: absolute; top: 8px; right: 8px; z-index: 3; color: #fff;
@@ -322,7 +339,7 @@
 .btn--icon { padding: 8px 9px; color: var(--muted); }
 .btn--icon svg { width: 16px; height: 16px; display: block; fill: none; stroke: currentColor; stroke-width: 1.7px; }
 .btn--icon.is-on { color: var(--accent); border-color: var(--accent); }
-.video--tile:hover { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent), 0 0 24px var(--accent-glow); }
+.video--tile:hover { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
 /* single-camera view */
 .single { max-width: 560px; display: grid; gap: 14px; }
 .single__back { justify-self: start; }
@@ -337,14 +354,14 @@
 .det--object { border-style: dashed; }
 /* OSD toggle in the header, next to REC — lights up (accent) like REC lights up red */
 .head-actions { display: flex; align-items: center; gap: 10px; }
-.osd-btn { display: inline-flex; align-items: center; gap: 9px; padding: 10px 16px; border-radius: 12px;
+.osd-btn { display: inline-flex; align-items: center; gap: 9px; height: 36px; padding: 0 14px; border-radius: var(--radius-sm);
   font-weight: 700; letter-spacing: 0.5px; font-size: 13px; color: var(--text);
   background: var(--glass-2); border: 1px solid var(--border);
   transition: transform .12s ease, box-shadow .2s, background .2s, border-color .15s; }
 .osd-btn:hover { transform: translateY(-1px); border-color: var(--border-strong); }
 .osd-btn .ic { width: 12px; height: 12px; border-radius: 50%; background: var(--faint); transition: background .2s, box-shadow .2s; }
-.osd-btn.is-on { background: var(--accent-grad); border-color: transparent; color: #0b0a16; box-shadow: 0 0 24px var(--accent-glow); }
-.osd-btn.is-on .ic { background: #0b0a16; box-shadow: none; }
+.osd-btn.is-on { background: var(--accent-grad); border-color: transparent; color: var(--on-accent); }
+.osd-btn.is-on .ic { background: var(--on-accent); box-shadow: none; }
 /* MF focus guide */
 .fguide { position: absolute; border: 2px solid #ffce5a; border-radius: 6px; pointer-events: none;
   box-shadow: 0 0 12px rgba(255,206,90,0.5); display: grid; place-items: end center; transition: all .1s linear; }
@@ -356,16 +373,17 @@
 .fp__hint { font-size: 11.5px; color: var(--faint); }
 /* focus-point bar sits between the live view and the title — give it a clear divider
    so its chips don't crowd the camera name below */
-.presets--fp { margin-top: 12px; padding-bottom: 18px; margin-bottom: 18px; border-bottom: 1px solid var(--border); }
+/* match the header's bottom margin (12px) so the camera-name + buttons row is evenly framed above and below */
+.presets--fp { margin-top: 12px; padding-bottom: 14px; margin-bottom: 12px; border-bottom: 1px solid var(--border); }
 
 /* camera-style OSD rendered on the live feed */
 .osd { position: absolute; inset: 0; pointer-events: none; z-index: 2; }
 .osd__rec { position: absolute; top: 10px; left: 10px; display: inline-flex; align-items: center; gap: 6px;
-  background: var(--rec); color: #fff; font-size: 11px; font-weight: 700; padding: 4px 9px; border-radius: 7px;
+  background: var(--rec); color: #fff; font-size: 11px; font-weight: 700; padding: 4px 9px; border-radius: var(--radius-sm);
   letter-spacing: 0.5px; box-shadow: 0 0 14px var(--rec-glow); }
 .osd__rec .osd__dot { width: 8px; height: 8px; border-radius: 50%; background: #fff; }
 .osd__tc { position: absolute; top: 10px; right: 10px; color: #fff; font-size: 12px; font-weight: 700;
-  letter-spacing: 0.5px; padding: 4px 8px; border-radius: 7px; background: rgba(0, 0, 0, 0.46);
+  letter-spacing: 0.5px; padding: 4px 8px; border-radius: var(--radius-sm); background: rgba(0, 0, 0, 0.46);
   font-family: ui-monospace, "SF Mono", Menlo, monospace; font-variant-numeric: tabular-nums;
   text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9); }
 .osd__batt { color: #cfd6e6 !important; }
@@ -375,7 +393,7 @@
   font-variant-numeric: tabular-nums; text-shadow: 0 1px 3px rgba(0, 0, 0, 0.9); }
 
 /* Per-camera panel settings popover (LUT + control visibility) */
-.icon-btn { padding: 9px 11px; }
+.icon-btn { width: 36px; padding: 0; justify-content: center; }
 .cam-settings {
   border: 1px solid var(--border-strong); border-radius: var(--radius-sm);
   background: var(--glass-2); padding: 12px 14px; margin-bottom: 14px;
@@ -388,6 +406,7 @@
 .cam-settings__title { font-size: 12px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
 .cam-settings__row { display: flex; align-items: center; gap: 9px; color: var(--text); font-size: 14px; cursor: pointer; }
 .cam-settings__field { display: grid; gap: 5px; color: var(--text); font-size: 13px; }
+.cam-settings__hint { font-size: 11.5px; color: var(--faint); line-height: 1.4; }
 .cam-settings__field .input, .cam-settings__field input[type="range"] { width: 100%; }
 
 /* Multiview popout window — feeds fill the whole window, edge to edge (no header, no padding) */
@@ -424,25 +443,28 @@
   background-repeat: no-repeat; background-position: right 9px center;
 }
 .feedsel:hover { border-color: rgba(255, 255, 255, 0.4); }
+.feedsel:focus, .feedsel:focus-visible { outline: none; border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-glow); }
 .feedsel option { color: #111; }
 .feedctl { position: absolute; bottom: 10px; left: 10px; z-index: 4; display: flex; flex-direction: column; gap: 6px; align-items: flex-start; }
 .feedctl__seg { display: inline-flex; gap: 2px; padding: 2px; border-radius: 9px; background: rgba(0, 0, 0, 0.55); border: 1px solid rgba(255, 255, 255, 0.16); backdrop-filter: blur(4px); }
 .feedctl__seg button {
   border: none; background: transparent; color: rgba(255, 255, 255, 0.85);
-  font-size: 12px; font-weight: 600; padding: 5px 11px; border-radius: 7px; cursor: pointer; transition: background .15s, color .15s;
+  font-size: 12px; font-weight: 600; padding: 5px 11px; border-radius: var(--radius-sm); cursor: pointer; transition: background .15s, color .15s;
 }
 .feedctl__seg button:hover { background: rgba(255, 255, 255, 0.1); }
-.feedctl__seg button.is-on { background: var(--accent-grad); color: #0b0a16; }
+.feedctl__seg button.is-on { background: var(--accent-grad); color: var(--on-accent); }
 
 /* Theme selector (header) */
 .theme-select {
   padding: 8px 28px 8px 12px; border-radius: var(--radius-sm); font-size: 13px; font-weight: 600;
-  color: var(--text); background-color: var(--glass-2); border: 1px solid var(--border);
+  /* Solid overlay (not var(--glass-2)) — in Aurora --glass-2 is a gradient, invalid for background-color. */
+  color: var(--text); background-color: rgba(255, 255, 255, 0.05); border: 1px solid var(--border);
   appearance: none; -webkit-appearance: none; cursor: pointer;
   background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='none' stroke='%23aab' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M2 4l4 4 4-4'/></svg>");
   background-repeat: no-repeat; background-position: right 9px center;
 }
 .theme-select:hover { border-color: var(--border-strong); }
+.theme-select:focus, .theme-select:focus-visible { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-glow); }
 .theme-select option { color: #111; }
 
 /* ---------- update banner ---------- */

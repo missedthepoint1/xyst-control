@@ -119,7 +119,6 @@ export function CameraPanel({ state, labels = true, onRename, dragHandleProps, d
           </div>
         </div>
         <div className="panel__head-right">
-          <button className="panel__remove" title="Remove camera" onClick={() => window.xyst.removeCamera(id)}>×</button>
           <div className="head-actions">
             {state.video?.type === 'protocol' && (
               <button type="button" className={`osd-btn${vaEnabled ? ' is-on' : ''}`}
@@ -145,17 +144,18 @@ export function CameraPanel({ state, labels = true, onRename, dragHandleProps, d
             <button type="button" className={`osd-btn icon-btn${settingsOpen ? ' is-on' : ''}`}
               title="Panel settings — LUT and which controls are shown"
               onClick={() => setSettingsOpen((o) => !o)} aria-label="Panel settings">
-              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
-                <circle cx="12" cy="12" r="3" />
-                <path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M19.1 4.9L17 7M7 17l-2.1 2.1" />
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <circle cx="12" cy="12" r="3.2" />
+                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z" />
               </svg>
             </button>
             <RecButton recording={rec} onToggle={() => window.xyst.record(id, !rec)} />
           </div>
+          <button className="panel__remove" title="Remove camera" onClick={() => window.xyst.removeCamera(id)}>×</button>
         </div>
       </header>
 
-      {settingsOpen && <CameraSettings state={state} onClose={() => setSettingsOpen(false)} />}
+      {settingsOpen && <CameraSettings state={state} presets={presets} onClose={() => setSettingsOpen(false)} />}
 
       <div className="controls">
         {show('iso', c.iso?.available) && <IsoControl c={c.iso!} onSet={(v) => set('iso', v)} />}
@@ -257,7 +257,7 @@ export function CameraPanel({ state, labels = true, onRename, dragHandleProps, d
         </div>
       )}
 
-      {!hidden.has('presets') && <PresetBar cameraId={state.id} presets={presets} />}
+      <PresetBar cameraId={state.id} presets={presets} />
     </section>
   );
 }

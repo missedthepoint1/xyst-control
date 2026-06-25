@@ -1,22 +1,21 @@
-// Swappable visual themes. Aurora is the original look; Broadcast and Cinema drop the
-// AI-template tells (violet→cyan gradient, aurora glow, glassmorphism) for a domain-specific,
-// flat-instrument feel. The choice persists locally and applies to every window (main + popout).
-export type ThemeName = 'aurora' | 'broadcast' | 'cinema' | 'mono' | 'tactical';
-const VALID: ThemeName[] = ['aurora', 'broadcast', 'cinema', 'mono', 'tactical'];
+// Swappable visual themes. The default `studio` is a flat instrument look (single cyan-teal
+// accent, matte graphite, no glow/gradient/glass) built for live production. `aurora` is a
+// refined dark-modern alternate (single violet accent, no rainbow). The choice persists
+// locally and applies to every window (main + popout).
+export type ThemeName = 'studio' | 'aurora';
+const VALID: ThemeName[] = ['studio', 'aurora'];
 
 export const THEMES: { id: ThemeName; label: string }[] = [
+  { id: 'studio', label: 'Studio' },
   { id: 'aurora', label: 'Aurora' },
-  { id: 'broadcast', label: 'Broadcast' },
-  { id: 'cinema', label: 'Cinema' },
-  { id: 'mono', label: 'Mono' },
-  { id: 'tactical', label: 'Tactical' },
 ];
 
 const KEY = 'xyst-theme';
 
 export function getTheme(): ThemeName {
   const v = localStorage.getItem(KEY) as ThemeName | null;
-  return v && VALID.includes(v) ? v : 'aurora';
+  // Migrate retired themes (broadcast/cinema/mono/tactical) and anything unknown to the default.
+  return v && VALID.includes(v) ? v : 'studio';
 }
 
 export function applyTheme(theme: ThemeName = getTheme()): void {

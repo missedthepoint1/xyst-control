@@ -1,11 +1,12 @@
-import type { CameraState, CameraUiSettings } from '@xyst/core';
+import { useState } from 'react';
+import type { CameraPreset, CameraState, CameraUiSettings } from '@xyst/core';
 import { TOGGLEABLE, effectiveHidden } from '../panelVisibility.js';
 import { BUILTIN_LOOKS, DEFAULT_LOOK } from '../viewAssist.js';
 
 type ViewAssist = NonNullable<CameraUiSettings['viewAssist']>;
 
 /** Per-camera customization popover: the live-view LUT and which control sections are shown. */
-export function CameraSettings({ state, onClose }: { state: CameraState; onClose: () => void }) {
+export function CameraSettings({ state, presets, onClose }: { state: CameraState; presets: CameraPreset[]; onClose: () => void }) {
   const id = state.id;
   const ui = state.ui ?? {};
   const save = (next: CameraUiSettings) => void window.xyst.setUiSettings(id, next);
@@ -26,6 +27,18 @@ export function CameraSettings({ state, onClose }: { state: CameraState; onClose
   };
 
   const items = TOGGLEABLE.filter((it) => it.avail(state.controls));
+
+  // Preset creation lives here (the panel only shows recall chips). Captures the current manual
+  // exposure set under a name; recall happens from the chips on the panel. `presets` is passed down
+  // from CameraPanel (which already subscribes) so we don't open a second subscription.
+  const [presetName, setPresetName] = useState('');
+  const [savingPreset, setSavingPreset] = useState(false);
+  const savePreset = async () => {
+    const label = presetName.trim() || `Preset ${presets.length + 1}`;
+    setSavingPreset(true);
+    try { await window.xyst.savePreset(id, label); setPresetName(''); }
+    finally { setSavingPreset(false); }
+  };
 
   return (
     <div className="cam-settings" role="dialog" aria-label="Camera panel settings">
@@ -55,6 +68,21 @@ export function CameraSettings({ state, onClose }: { state: CameraState; onClose
           <input type="range" min={0} max={100} value={Math.round(base.intensity * 100)}
             onChange={(e) => setVa({ intensity: Number(e.target.value) / 100 })} />
         </label>
+      </section>
+
+      <section className="cam-settings__sec">
+        <div className="cam-settings__title">Presets</div>
+        <div className="presets__row">
+          <input className="input" value={presetName} placeholder="Preset name"
+            onChange={(e) => setPresetName(e.target.value)}
+            onKeyDown={(e) => { if (e.key === 'Enter') void savePreset(); }} />
+          <button type="button" className="btn" disabled={savingPreset} onClick={savePreset}>Save</button>
+        </div>
+        <div className="cam-settings__hint">
+          {presets.length > 0
+            ? `${presets.length} saved — recall from the chips on the panel.`
+            : 'Saves the current exposure (ISO, shutter, iris, WB, ND) under a name.'}
+        </div>
       </section>
 
       <section className="cam-settings__sec">

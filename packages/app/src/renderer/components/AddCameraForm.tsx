@@ -8,6 +8,9 @@ const HOST_PREFIX = '192.168.10.';
 const BODIES = [
   { id: 'c300', label: 'Canon EOS C300 Mark III', driver: 'xc', name: 'C300 III' },
   { id: 'c80', label: 'Canon EOS C80', driver: 'xc', name: 'C80' },
+  // Generic XC entry: the driver is fully capability-discovered, so any Canon cinema body on the
+  // XC Protocol (C70, XF605, C500 Mk II, …) works the same — this just saves picking C80 + renaming.
+  { id: 'xc', label: 'Canon XC — other body', driver: 'xc', name: 'Canon XC' },
   { id: 'r6iii', label: 'Canon EOS R6 Mark III', driver: 'ccapi', name: 'R6 III' },
 ] as const;
 type BodyId = (typeof BODIES)[number]['id'];
@@ -96,6 +99,7 @@ export function AddCameraForm({ onAdded }: { onAdded: () => void }) {
       {recentHosts.length > 0 && (
         <datalist id="recent-hosts">{recentHosts.map((h) => <option key={h} value={h} />)}</datalist>
       )}
+      {body.id === 'xc' && <div className="add__hint">Any Canon cinema body on the XC Protocol (C70, XF605, C500 Mk II…). Controls are read from the camera, so only what this body supports will appear.</div>}
       {body.driver === 'ccapi' && <div className="add__hint">R6 III uses CCAPI — include the port the camera shows, and enable CCAPI on the body.</div>}
       <div className="add__hint">Login — only if the camera has user authentication on</div>
       <input className="input" value={username} onChange={(e) => setUsername(e.target.value)} placeholder="Username (optional)" autoComplete="off" />

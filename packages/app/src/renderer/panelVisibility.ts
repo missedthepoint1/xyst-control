@@ -21,16 +21,22 @@ export const TOGGLEABLE: ToggleItem[] = [
   { id: 'focusAction', label: 'Focus actions', avail: (c) => has(c.focusAction) },
   { id: 'advanced', label: 'Advanced (AF / WB set)', avail: (c) =>
       has(c.afMode) || has(c.afSpeed) || has(c.afResponse) || has(c.afLock) || has(c.awbHold) || has(c.wbAction) },
-  { id: 'presets', label: 'Presets', avail: () => true },
+  // Presets are created in the gear settings and recalled from chips on the panel — no toggle needed.
   { id: 'focusPoints', label: 'Focus points', avail: () => true },
 ];
 
-// Driver-derived defaults applied until the user customizes visibility. The R6 III (CCAPI)
-// exposes a shutter setting that isn't a meaningful control in its movie use, so it's hidden
-// out of the box; the user can re-show it from the per-camera Settings.
+// Hidden out of the box for every camera until the user customizes visibility. Focus points are an
+// occasional/advanced feature, so the focus save-point bar is off by default to keep the panel
+// clean; the user can re-show it from the per-camera Settings ("Focus points").
+const DEFAULT_HIDDEN_ALL: string[] = ['focusPoints'];
+
+// Driver-derived defaults, merged on top of the all-cameras defaults. The R6 III (CCAPI) exposes a
+// shutter setting that isn't a meaningful control in its movie use, so it's hidden out of the box;
+// the user can re-show it from the per-camera Settings.
 const DEFAULT_HIDDEN: Record<string, string[]> = { ccapi: ['shutter'] };
 
-/** The effective hidden-control set: the user's explicit choice, else driver defaults. */
+/** The effective hidden-control set: the user's explicit choice, else the built-in defaults. */
 export function effectiveHidden(state: CameraState): Set<string> {
-  return new Set(state.ui?.hiddenControls ?? DEFAULT_HIDDEN[state.driver ?? ''] ?? []);
+  if (state.ui?.hiddenControls) return new Set(state.ui.hiddenControls);
+  return new Set([...DEFAULT_HIDDEN_ALL, ...(DEFAULT_HIDDEN[state.driver ?? ''] ?? [])]);
 }
