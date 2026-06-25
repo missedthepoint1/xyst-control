@@ -55,10 +55,9 @@ for **Canon cinema bodies** on a wired network, in one dark, touch-friendly desk
 
 | Camera | Control protocol | Status | Firmware (verified) |
 |---|---|---|---|
-| **Canon EOS C300 Mark III** | XC Protocol over Ethernet | ✅ Supported | _TBD at first test_ |
+| **Canon EOS C300 Mark III** | XC Protocol over Ethernet | ✅ Supported | ✅ Verified working |
 | **Canon EOS C80** | XC Protocol over Ethernet | ✅ Supported | 1.0.2.1 · XC 7.0.0 — 2026-06-15 |
 | **Canon EOS R6 Mark III** | CCAPI over HTTPS | ✅ Supported | 1.0.0 — 2026-06-13 |
-| **Canon EOS R5 C** | Browser Remote | 🛠 In progress | — |
 | Sony FX / Alpha | Camera Remote SDK | 🔭 Planned | — |
 
 > **Keep the firmware column updated** — camera endpoints can change on firmware updates.
